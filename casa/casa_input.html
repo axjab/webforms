@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>casa — property tracker</title>
+<link rel="stylesheet" href="casa_input.css">
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════ -->
+<header class="header">
+  <span class="header-logo">Casa</span>
+  <div class="header-right">
+    <div class="auth-badge" id="auth-badge" onclick="toggleLoginPanel()">
+      <span class="auth-dot" id="auth-dot"></span>
+      <span id="auth-label">NOT AUTHENTICATED</span>
+      <span class="auth-signout" id="auth-signout" style="display:none" onclick="logout(event)">✕</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══ LOGIN OVERLAY (mobile-first bottom sheet / desktop modal) ══ -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-backdrop" onclick="closeLoginPanel()"></div>
+  <div class="login-panel" id="login-panel" role="dialog" aria-modal="true" aria-labelledby="login-panel-title">
+    <div class="login-panel-title" id="login-panel-title">Sign in</div>
+    <div class="field">
+      <label class="field-label" for="login-email">Email</label>
+      <input type="email" id="login-email" value="x@alj.cx" disabled autocomplete="username" />
+    </div>
+    <div class="field">
+      <label class="field-label" for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter'){ event.preventDefault(); login(); } if(event.key==='Escape'){ closeLoginPanel(); }" />
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-panel-actions">
+      <button class="btn-secondary" type="button" onclick="closeLoginPanel()">Cancel</button>
+      <button class="btn-submit" type="button" onclick="login()" id="login-btn">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VIEW TABS ═══════════════════════════════════════ -->
+<div class="view-tabs">
+  <button type="button" class="view-tab active" id="tab-form" onclick="switchToFormView()">+ New entry</button>
+  <button type="button" class="view-tab" id="tab-list" onclick="switchToListView()">
+    Saved <span class="tab-count mono" id="tab-list-count"></span>
+  </button>
+</div>
+
+<!-- ══ MAIN ════════════════════════════════════════════ -->
+<main class="main">
+
+  <div class="connection-hint" id="connection-hint">→ Not connected — submit will dry run</div>
+
+  <div class="status-bar" id="status-bar">
+    <span id="status-msg"></span>
+    <span class="status-close" onclick="closeStatus()">✕</span>
+  </div>
+
+  <!-- ══════════════════ FORM VIEW ══════════════════════ -->
+  <div class="view-form active" id="view-form">
+
+    <div class="editing-banner" id="editing-banner">
+      <span class="editing-banner-text" id="editing-banner-text"></span>
+      <span class="editing-banner-cancel" onclick="cancelEdit()">Cancel</span>
+    </div>
+
+    <!-- IDENTITY ─────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-label">Identity</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="field">
+          <label class="field-label" for="address">Address <span class="req">*</span></label>
+          <input type="text" id="address" placeholder="44 Ontario Street, Ottawa" />
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="url">URL</label>
+            <input type="url" id="url" placeholder="https://rentals.ca/…" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="contact">Contact</label>
+            <input type="text" id="contact" placeholder="Jane @ (613) 555-0101" />
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="divider"></div>
+
+    <!-- LOCATION ─────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-label">Location</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="lat">Latitude</label>
+          <input type="number" id="lat" step="any" placeholder="45.4231" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="lon">Longitude</label>
+          <input type="number" id="lon" step="any" placeholder="-75.6892" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="distance_from_ref">Distance from ref</label>
+          <input type="number" id="distance_from_ref" placeholder="km" />
+        </div>
+      </div>
+    </section>
+    <div class="divider"></div>
+
+    <!-- UNIT ─────────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-label">Unit</div>
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label" for="laundry_type">Laundry type</label>
+          <select id="laundry_type">
+            <option value="shared">Shared</option>
+            <option value="in-unit">In-unit</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="move_in">Move-in date</label>
+          <input type="date" id="move_in" />
+        </div>
+      </div>
+    </section>
+    <div class="divider"></div>
+
+    <!-- AMENITIES ────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-label">Amenities</div>
+      <div class="chip-row">
+        <button type="button" class="chip" data-field="has_parking">Parking</button>
+        <button type="button" class="chip" data-field="parking_nearby">Parking nearby</button>
+        <button type="button" class="chip" data-field="has_storage">Storage</button>
+        <button type="button" class="chip" data-field="has_gym">Gym</button>
+        <button type="button" class="chip" data-field="has_pool">Pool</button>
+        <button type="button" class="chip" data-field="is_furnished">Furnished</button>
+      </div>
+    </section>
+    <div class="divider"></div>
+
+    <!-- COSTS ────────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-label">Monthly costs</div>
+      <div class="grid-3" style="margin-bottom:12px;">
+        <div class="field">
+          <label class="field-label" for="cost_base">Base <span class="req">*</span></label>
+          <input type="number" id="cost_base" placeholder="0" oninput="updateTotal()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cost_heat">Heat</label>
+          <input type="number" id="cost_heat" value="80" oninput="updateTotal()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cost_water">Water</label>
+          <input type="number" id="cost_water" value="0" oninput="updateTotal()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cost_power">Power</label>
+          <input type="number" id="cost_power" value="80" oninput="updateTotal()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cost_internet">Internet</label>
+          <input type="number" id="cost_internet" value="65" oninput="updateTotal()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cost_laundry">Laundry</label>
+          <input type="number" id="cost_laundry" value="35" oninput="updateTotal()" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cost_parking">Parking</label>
+          <input type="number" id="cost_parking" value="0" oninput="updateTotal()" />
+        </div>
+      </div>
+
+      <!-- cost_other ──────────────────────────────────── -->
+      <div style="margin-bottom:8px;">
+        <div class="field-label" style="margin-bottom:8px;">Other expenses</div>
+        <div id="cost-other-rows"></div>
+        <button type="button" class="btn-add-other" onclick="addCostOther()">+ Add expense</button>
+      </div>
+
+      <!-- total ───────────────────────────────────────── -->
+      <div class="cost-total-row">
+        <span class="cost-total-label">Monthly total</span>
+        <span class="cost-total-value mono" id="cost-total">$260</span>
+      </div>
+    </section>
+    <div class="divider"></div>
+
+    <!-- EVALUATION ───────────────────────────────────── -->
+    <section class="section">
+      <div class="section-label">Evaluation</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="nabila_rating">Nabila's rating (1–10)</label>
+            <input type="number" id="nabila_rating" min="1" max="10" placeholder="—" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="score">Score (computed)</label>
+            <input type="number" id="score" placeholder="—" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="reviews">Reviews</label>
+          <textarea id="reviews" placeholder="Google reviews summary…"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label" for="assessment">Assessment <span style="color:var(--muted); font-size:10px;">(HTML)</span></label>
+          <textarea id="assessment" placeholder="Verdict after viewing…"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label" for="notes">Notes <span style="color:var(--muted); font-size:10px;">(HTML)</span></label>
+          <textarea id="notes" placeholder="Anything else…"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUBMIT ───────────────────────────────────────── -->
+    <button type="button" class="btn-submit dry-run" id="btn-submit" onclick="submit()">
+      ⚠ Dry run — not authenticated
+    </button>
+
+  </div>
+
+  <!-- ══════════════════ LIST VIEW ══════════════════════ -->
+  <div class="view-list" id="view-list">
+    <div class="list-toolbar">
+      <span class="list-summary mono" id="list-summary">—</span>
+      <button type="button" class="btn-new-entry" onclick="switchToFormView()">+ New entry</button>
+    </div>
+    <div class="property-cards" id="property-cards"></div>
+  </div>
+
+</main>
+
+<!-- ══ DRY RUN PANEL ════════════════════════════════ -->
+<div class="dry-run-panel" id="dry-run-panel">
+  <div class="dry-run-header">
+    <span class="dry-run-title" id="dry-run-title">⚠ Dry run — POST payload (not saved)</span>
+    <button class="btn-close-dry-run" onclick="closeDryRun()">✕</button>
+  </div>
+  <pre class="dry-run-pre" id="dry-run-pre"></pre>
+</div>
+
+<script src="casa_input.js"></script>
+</body>
+</html>
