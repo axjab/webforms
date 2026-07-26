@@ -3,7 +3,6 @@
 ═══════════════════════════════════════════════════════ */
 const BASE_URL       = 'https://api.alj.cx';
 const AUTH_IDENTITY  = 'x@alj.cx'; // only user — hardcoded per spec, safe to expose
-const AUTH_STORAGE_KEY = 'casa_auth';
 
 /* ═══════════════════════════════════════════════════════
    STATE
@@ -12,30 +11,6 @@ let authToken  = null;
 let authUser   = null;
 let records    = [];   // last fetched listing, most recent first
 let editingId  = null; // set while editing an existing record
-
-/* ═══════════════════════════════════════════════════════
-   AUTH PERSISTENCE (localStorage — survives refresh)
-═══════════════════════════════════════════════════════ */
-function persistAuth() {
-  try {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token: authToken, record: authUser }));
-  } catch (e) {
-    // localStorage unavailable (private browsing, quota, etc.) — session just won't survive a refresh
-  }
-}
-
-function clearPersistedAuth() {
-  try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) { /* ignore */ }
-}
-
-function loadPersistedAuth() {
-  try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    return null;
-  }
-}
 
 /* ═══════════════════════════════════════════════════════
    AUTH
@@ -75,13 +50,9 @@ async function login() {
 
     authToken = data.token;
     authUser  = data.record;
-    persistAuth();
     document.getElementById('login-password').value = '';
     updateAuthUI();
     closeLoginPanel();
-
-	console.log("hello");
-    console.log(localStorage.getItem('casa_auth'));
 
     // if the saved-listings tab is currently open, populate it now that we can
     if (document.getElementById('tab-list').classList.contains('active')) {
@@ -101,7 +72,6 @@ function logout(event) {
   authToken = null;
   authUser  = null;
   records   = [];
-  clearPersistedAuth();
   updateAuthUI();
 
   // saved listings require auth — bounce back to the form if we were viewing them
@@ -128,42 +98,6 @@ function updateAuthUI() {
     hint.textContent      = '→ Not connected — submit will dry run';
   }
   refreshSubmitButtonState();
-}
-
-/* ═══════════════════════════════════════════════════════
-   SESSION RESTORE (on page load)
-═══════════════════════════════════════════════════════ */
-async function restoreSession() {
-  const saved = loadPersistedAuth();
-  if (!saved?.token) {
-    updateAuthUI();
-    return;
-  }
-
-  // show the saved identity optimistically while we confirm the token is still valid
-  authToken = saved.token;
-  authUser  = saved.record;
-  updateAuthUI();
-  document.getElementById('auth-label').textContent = 'Checking session…';
-
-  try {
-    const res  = await fetch(`${BASE_URL}/api/collections/users/auth-refresh`, {
-      method:  'POST',
-      headers: { 'Authorization': authToken },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Session expired');
-
-    authToken = data.token;
-    authUser  = data.record;
-    persistAuth();
-  } catch (err) {
-    authToken = null;
-    authUser  = null;
-    clearPersistedAuth();
-  } finally {
-    updateAuthUI();
-  }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -675,6 +609,5 @@ function closeStatus() {
 /* ═══════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════ */
-restoreSession(); 
 updateTotal();
 updateAuthUI();
