@@ -1,7 +1,8 @@
 
-You are a genius frontend developer. You code in vanilla HTML, CSS, and Javascript.
+You are a genius frontend developer.
 
-The goal is to design a mobile-first form where users enter information about local property listing. The application already exists, you are not building from scratch, but making ONLY the necessary changes.
+The goal is to design a mobile-first form where users enter information about local property listing.
+The application already exists, you are not building from scratch, but making ONLY the necessary changes.
 
 The current frontend has drifted from the backend, the model has been updated.
 
@@ -179,5 +180,6 @@ Show the first few resulting table from most recent to last and have a button wh
 ## Final notes and meta-instructions
 
 - I intentionally omitted the CSS to focus on structure and behaviour. Any style you provide me will simply appended to the CSS file.
-- If ambiguities exist in this prompt, ask me to clarify, do not assume. Do not build unless I say OK.
+- If ambiguities exist in this prompt, ask me to clarify, do not assume, or make unfounded decisions.
+  Do not build unless I say OK.
 - Only modify what is affected by the tasks listed above, do not modify other components, like the auth flow for example, which works perfectly.
