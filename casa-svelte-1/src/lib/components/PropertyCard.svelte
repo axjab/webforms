@@ -5,8 +5,8 @@
 	let { record, onView, onEdit, onDelete } = $props();
 
 	const total = $derived(recordTotal(record));
-	// Countdown only for SCHEDULED + a future tour_date (task 0, task 12 answer).
 	const countdown = $derived(record.status === 'SCHEDULED' ? formatCountdown(record.tour_date) : null);
+	const isRejected = $derived(record.status === 'REJECTED' || record.status === 'REJECT');
 
 	const badgeFields = [
 		['has_parking', 'Parking'],
@@ -18,7 +18,7 @@
 	];
 </script>
 
-<div class="property-card">
+<div class="property-card" class:rejected={isRejected}>
 	<div class="property-card-header">
 		<span class="property-card-address">{record.address || 'Untitled'}</span>
 		<span class="property-card-score">Score {record.score ?? '—'}</span>
@@ -54,3 +54,14 @@
 		</button>
 	</div>
 </div>
+
+<style>
+	.property-card.rejected {
+		opacity: 0.5;
+		text-decoration: line-through;
+	}
+
+	.property-card.rejected .property-card-actions {
+		text-decoration: none; /* Keeps action buttons legible */
+	}
+</style>

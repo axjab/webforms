@@ -1,8 +1,6 @@
 
 FAILED:
 
-- Darker
-- REJECT --> crossed out, dimmed out, move to bottom
 - Listing URL vs nav url different
 - Show a countdown to tour date in the card list/queue view
 - Add a GO button in the cards which opens the navigation_url link
@@ -13,6 +11,7 @@ FAILED:
 
 OK:
 
+- REJECT --> crossed out, dimmed out, move to bottom
 - Make Google reviews hidden expandable field
 - Make lat,lon single field string in the form of lat,long (just trust user to put the right format for now)
 - MAke score field read-only, not a field

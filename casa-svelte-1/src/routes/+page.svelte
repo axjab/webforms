@@ -31,6 +31,16 @@
 	let dryRunPayload = $state(null);
 
 	const viewingRecord = $derived(records.find((r) => r.id === viewingId));
+	// Derived sorted list placing REJECTED / REJECT cards at the bottom
+	const sortedRecords = $derived(
+		[...records].sort((a, b) => {
+			const aRejected = a.status === 'REJECTED' || a.status === 'REJECT';
+			const bRejected = b.status === 'REJECTED' || b.status === 'REJECT';
+			if (aRejected && !bRejected) return 1;
+			if (!aRejected && bRejected) return -1;
+			return 0;
+		})
+	);
 
 	// ── session restore on load ──────────────────────────
 	onMount(async () => {
@@ -271,7 +281,7 @@
 				</div>
 			{:else}
 				<div class="property-cards">
-					{#each records as record (record.id)}
+					{#each sortedRecords as record (record.id)}
 						<PropertyCard
 							{record}
 							onView={viewRecord}
