@@ -1,13 +1,16 @@
 
 FAILED:
 
-- Listing URL vs nav url different
 - Show a countdown to tour date in the card list/queue view
 - Add a GO button in the cards which opens the navigation_url link
 - detail view, expand card, no second page
 - prompt user, phone or mailto
 
 11. Make contact tel: and mailto: clickable
+
+LOW-PRIORITY:
+
+- Absent nav url should NOT make app fall back to url
 
 OK:
 

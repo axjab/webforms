@@ -59,8 +59,17 @@
 	<div class="divider"></div>
 
 	<!-- LOCATION ─────────────────────────────────────── -->
-	<section class="section">
+		<section class="section">
 		<div class="section-label">Location</div>
+		<div class="field">
+			<label class="field-label" for="navigation_url">Navigation URL</label>
+			<input
+				type="text"
+				id="navigation_url"
+				placeholder="mapfwd.com/https://rentals.ca/…"
+				bind:value={record.navigation_url}
+			/>
+		</div>
 		<div class="grid-2">
 			<div class="field">
 				<label class="field-label" for="coordinates">Location (lat,lon)</label>
@@ -94,7 +103,7 @@
 				</label>
 			</div>
 		</div>
-	</section>
+		</section>
 	<div class="divider"></div>
 
 	<!-- UNIT ─────────────────────────────────────────── -->

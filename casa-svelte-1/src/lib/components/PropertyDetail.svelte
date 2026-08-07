@@ -22,8 +22,8 @@
 
 		<dt>URL</dt>
 		<dd>
-			{#if record.url}
-				<a href={record.url} target="_blank" rel="noopener">{record.url}</a>
+			{#if record.navigation_url}
+				<a href={record.navigation_url} target="_blank" rel="noopener">View on map</a>
 			{:else}
 				—
 			{/if}

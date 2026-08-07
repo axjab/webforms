@@ -91,7 +91,7 @@ export function toApiPayload(record) {
 		contact: record.contact || undefined,
 		coordinates,
 		distance_from_ref: coordinates ? distanceFromRef(coordinates) : undefined,
-		navigation_url: navigationUrl(record.url),
+		navigation_url: navigationUrl(record.navigation_url),
 		status,
 		verdict: record.verdict,
 		tour_requested: tourRequested,
