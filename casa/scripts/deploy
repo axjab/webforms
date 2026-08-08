@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e # Exit immediately if any command fails
+
+# ── Configuration ──────────────────────────────────────────────────────────────
+LOCAL_BUILD_DIR="$HOME/src/webforms/casa/build/"
+REMOTE_HOST="firelink"
+REMOTE_BASE_DIR="/srv/forms"
+
+# Generate timestamp
+DATESTAMP=$(date +%Y-%m-%d)
+RELEASE_DIR="$REMOTE_BASE_DIR/releases/casa/$DATESTAMP"
+LATEST_LINK="$REMOTE_BASE_DIR/casa"
+
+# ── 1. Build Local SvelteKit App ──────────────────────────────────────────────
+echo "==> Building application locally..."
+npm --prefix "$HOME/src/webforms/casa" run build
+
+# ── 2. Create Remote Release Directory & Upload Files ─────────────────────────
+echo "==> Creating release directory on $REMOTE_HOST..."
+ssh "$REMOTE_HOST" "mkdir -p '$RELEASE_DIR'"
+
+echo "==> Uploading build assets via rsync..."
+rsync -Pavz "$LOCAL_BUILD_DIR" "$REMOTE_HOST:$RELEASE_DIR/"
+
+# ── 3. Atomically Swap Symlink ─────────────────────────────────────────────────
+echo "==> Updating symlink '$LATEST_LINK' -> '$RELEASE_DIR'..."
+ssh "$REMOTE_HOST" "ln -sfn '$RELEASE_DIR' '$LATEST_LINK'"
+
+# ── 4. Prune Old Releases ─────────────────────────────────────────────────────
+echo "==> Cleaning up old releases (keeping the last 5)..."
+ssh "$REMOTE_HOST" "ls -dt $REMOTE_BASE_DIR/releases/* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true"
+
+echo "==> Deployment finished successfully!"

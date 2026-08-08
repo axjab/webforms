@@ -1,0 +1,21 @@
+# Node dependencies
+node_modules/
+
+# SvelteKit build artifacts and internal cache
+.svelte-kit/
+build/
+dist/
+
+# Local environment variables
+.env
+.env.*
+!.env.example
+
+# OS and Editor metadata
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
