@@ -1,4 +1,5 @@
 export const BASE_URL = 'https://api.alj.cx';
+const ISSUES_URL = `${BASE_URL}/api/collections/casa_issues/records`;
 export const AUTH_IDENTITY = 'x@alj.cx'; // only user — hardcoded per spec, safe to expose
 
 async function parseJson(res) {
@@ -28,6 +29,68 @@ export async function refreshRequest(token) {
 	const data = await parseJson(res);
 	if (!res.ok) throw new Error(data.message || 'Session expired');
 	return data; // { token, record }
+}
+
+export async function fetchIssues() {
+	const res = await fetch(`${ISSUES_URL}?sort=-created`, {
+		headers: { 'Content-Type': 'application/json' }
+	});
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err.message || `Failed to fetch issues (${res.status})`);
+	}
+	return res.json();
+}
+
+export async function createIssue(payload, token = null) {
+	const headers = { 'Content-Type': 'application/json' };
+	if (token) headers['Authorization'] = `Bearer ${token}`;
+
+	const res = await fetch(ISSUES_URL, {
+		method: 'POST',
+		headers,
+		body: JSON.stringify(payload)
+	});
+
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err.message || `Failed to create issue (${res.status})`);
+	}
+	return res.json();
+}
+
+export async function updateIssue(id, payload, token) {
+	if (!token) throw new Error('Authentication required to update issues.');
+
+	const res = await fetch(`${ISSUES_URL}/${id}`, {
+		method: 'PATCH',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify(payload)
+	});
+
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err.message || `Failed to update issue (${res.status})`);
+	}
+	return res.json();
+}
+
+export async function deleteIssue(id, token) {
+	if (!token) throw new Error('Authentication required to delete issues.');
+
+	const res = await fetch(`${ISSUES_URL}/${id}`, {
+		method: 'DELETE',
+		headers: { Authorization: `Bearer ${token}` }
+	});
+
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err.message || `Failed to delete issue (${res.status})`);
+	}
+	return true;
 }
 
 export async function fetchRecords(token) {

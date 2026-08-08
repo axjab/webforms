@@ -8,10 +8,10 @@
 	import LoginPanel from '$lib/components/LoginPanel.svelte';
 	import PropertyForm from '$lib/components/PropertyForm.svelte';
 	import PropertyCard from '$lib/components/PropertyCard.svelte';
-	import PropertyDetail from '$lib/components/PropertyDetail.svelte';
 	import DryRunPanel from '$lib/components/DryRunPanel.svelte';
+	import IssuesManager from '$lib/components/IssuesManager.svelte';
 
-	/** @type {'form' | 'list' | 'detail'} */
+	/** @type {'form' | 'list' | 'detail' | 'issues'} */
 	let view = $state('form');
 
 	let records = $state([]); // raw PocketBase records, most recent first
@@ -243,6 +243,9 @@
 	<button type="button" class="view-tab" class:active={view === 'list'} onclick={goToList}>
 		Saved <span class="tab-count mono">{totalItems ? `(${totalItems})` : ''}</span>
 	</button>
+	<button type="button" class="view-tab" class:active={view === 'issues'} onclick={() => (view = 'issues')}>
+		Issues
+	</button>
 </div>
 
 <!-- ══ MAIN ════════════════════════════════════════════ -->
@@ -362,8 +365,8 @@
 				{/if}
 			{/if}
 		</div>
-	{:else if view === 'detail' && viewingRecord}
-		<PropertyDetail record={viewingRecord} onEdit={editRecordById} onClose={() => (view = 'list')} />
+	{:else if view === 'issues'}
+		<IssuesManager />
 	{/if}
 </main>
 

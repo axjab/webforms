@@ -1,12 +1,9 @@
 
 FAILED:
 
-- fix style of card list, accordion regressed
-- move all rejected entries in "archived" accordion similar to accepted ones
-- make countdown more compact in Card view
-- add base cost to detail view
-
 - add issues to model
+
+- make issue a smaller button than entry and saved, and if possible replace the word Issues with a material icon symbolizing them.
 
 - material icons for heat, water, power, internet, laundry, parking
 
@@ -36,6 +33,10 @@ LOW-PRIORITY:
 
 OK: (keep for regression)
 
+- add base cost to detail view
+- make countdown more compact in Card view
+- move all rejected entries in "archived" accordion similar to accepted ones
+- fix style of card list, accordion regressed
 - add URL validation for navigation url: DO NOT CHECK FOR NULL or EMPTY, just format
 - copy/duplicate all error messages at the  bottom of the form, just under the save button
 - cannot schedule tour date in the past
