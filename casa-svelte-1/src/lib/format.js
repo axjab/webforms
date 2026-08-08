@@ -22,18 +22,30 @@ export function formatDateTime(iso) {
 	});
 }
 
-// Countdown string for a future datetime, or null if it's in the past/unset.
+// Countdown string for a target datetime (past or future)
 export function formatCountdown(iso) {
 	if (!iso) return null;
-	const target = new Date(iso.replace(' ', 'T')).getTime();
+	const normalized = typeof iso === 'string' ? iso.trim().replace(' ', 'T') : iso;
+	const target = new Date(normalized).getTime();
+	if (Number.isNaN(target)) return null;
+
 	const diff = target - Date.now();
-	if (Number.isNaN(target) || diff <= 0) return null;
+	if (diff <= 0) {
+		const pastMs = Math.abs(diff);
+		const days = Math.floor(pastMs / 86400000);
+		const hours = Math.floor((pastMs % 86400000) / 3600000);
+		if (days > 0) return `${days}d ago`;
+		if (hours > 0) return `${hours}h ago`;
+		return `just now`;
+	}
+
 	const days = Math.floor(diff / 86400000);
 	const hours = Math.floor((diff % 86400000) / 3600000);
 	const minutes = Math.floor((diff % 3600000) / 60000);
+
 	if (days > 0) return `in ${days}d ${hours}h`;
 	if (hours > 0) return `in ${hours}h ${minutes}m`;
-	return `in ${minutes}m`;
+	return `in ${Math.max(1, minutes)}m`;
 }
 
 export function escapeHtml(str) {

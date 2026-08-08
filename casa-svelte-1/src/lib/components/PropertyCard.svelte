@@ -1,12 +1,20 @@
 <script>
 	import { recordTotal } from '$lib/model.js';
-	import { formatMoney, formatDate, formatCountdown } from '$lib/format.js';
+	import { formatMoney, formatDate, formatDateTime, formatCountdown } from '$lib/format.js';
 
 	let { record, onView, onEdit, onDelete } = $props();
 
 	const total = $derived(recordTotal(record));
-	const countdown = $derived(record.status === 'SCHEDULED' ? formatCountdown(record.tour_date) : null);
 	const isRejected = $derived(record.status === 'REJECTED' || record.status === 'REJECT');
+
+	// Comprehensive date and countdown calculation for SCHEDULED cards
+	const countdownInfo = $derived.by(() => {
+		if (record.status !== 'SCHEDULED') return null;
+		if (!record.tour_date) return { dateStr: 'No date set', remaining: null };
+		const dateStr = formatDateTime(record.tour_date);
+		const remaining = formatCountdown(record.tour_date);
+		return { dateStr, remaining };
+	});
 
 	// Strictly uses navigation_url only
 	const goUrl = $derived.by(() => {
@@ -26,7 +34,13 @@
 	];
 </script>
 
-<div class="property-card" class:rejected={isRejected}>
+<div
+	class="property-card"
+	class:scheduled={record.status === 'SCHEDULED'}
+	class:queued={record.status === 'QUEUED'}
+	class:accepted={record.status === 'ACCEPTED'}
+	class:rejected={isRejected}
+>
 	<div class="property-card-header">
 		<span class="property-card-address">{record.address || 'Untitled'}</span>
 		<span class="property-card-score">Score {record.score ?? '—'}</span>
@@ -37,9 +51,16 @@
 		<span>{formatDate(record.created)}</span>
 		<span class="property-card-status">{record.status}</span>
 	</div>
-	{#if countdown}
-		<div class="property-card-countdown">Tour {countdown}</div>
+
+	{#if record.status === 'SCHEDULED' && countdownInfo}
+		<div class="property-card-countdown-badge">
+			<span>⏳ Tour: {countdownInfo.dateStr}</span>
+			{#if countdownInfo.remaining}
+				<span class="countdown-time">({countdownInfo.remaining})</span>
+			{/if}
+		</div>
 	{/if}
+
 	{#if badgeFields.some(([field]) => record[field])}
 		<div class="property-card-badges">
 			{#each badgeFields as [field, label]}
@@ -64,6 +85,18 @@
 </div>
 
 <style>
+	/* --- Status Styles --- */
+	.property-card.scheduled {
+		border-left: 4px solid #2563eb;
+		background-color: rgba(37, 99, 235, 0.04);
+		box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+	}
+
+	.property-card.accepted {
+		border-left: 4px solid #16a34a;
+		background-color: rgba(22, 163, 74, 0.05);
+	}
+
 	.property-card.rejected {
 		opacity: 0.5;
 		text-decoration: line-through;
@@ -73,7 +106,28 @@
 		text-decoration: none;
 	}
 
-	/* Distinct GO button styling */
+	/* --- Countdown Badge --- */
+	.property-card-countdown-badge {
+		display: inline-flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		background-color: #2563eb;
+		color: #ffffff;
+		font-weight: 600;
+		font-size: 0.8rem;
+		padding: 0.3rem 0.65rem;
+		border-radius: 8px;
+		margin: 0.4rem 0;
+		width: fit-content;
+	}
+
+	.countdown-time {
+		opacity: 0.9;
+		font-weight: 400;
+	}
+
+	/* --- GO Button --- */
 	.btn-card-action.btn-card-go {
 		background-color: #2563eb;
 		color: #ffffff;

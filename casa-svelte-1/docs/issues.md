@@ -1,8 +1,8 @@
 
 FAILED:
 
+- Tour date cleared when opening edit view
 - Show a countdown to tour date in the card list/queue view
-- Add a GO button in the cards which opens the navigation_url link
 - detail view, expand card, no second page
 - prompt user, phone or mailto
 
@@ -14,6 +14,8 @@ LOW-PRIORITY:
 
 OK:
 
+- Add a GO button in the cards which opens the navigation_url link
+- Sorted cards order: SCHEDULED --> QUEUED --> ACCEPTED --> REJECTED
 - REJECT --> crossed out, dimmed out, move to bottom
 - Make Google reviews hidden expandable field
 - Make lat,lon single field string in the form of lat,long (just trust user to put the right format for now)

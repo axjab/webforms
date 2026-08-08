@@ -30,16 +30,28 @@
 	let dryRunTitle = $state('');
 	let dryRunPayload = $state(null);
 
+	// Status priority map for sorting non-accepted cards
+	const statusPriority = {
+		SCHEDULED: 1,
+		QUEUED: 2,
+		REJECT: 3,
+		REJECTED: 3
+	};
+
 	const viewingRecord = $derived(records.find((r) => r.id === viewingId));
-	// Derived sorted list placing REJECTED / REJECT cards at the bottom
-	const sortedRecords = $derived(
-		[...records].sort((a, b) => {
-			const aRejected = a.status === 'REJECTED' || a.status === 'REJECT';
-			const bRejected = b.status === 'REJECTED' || b.status === 'REJECT';
-			if (aRejected && !bRejected) return 1;
-			if (!aRejected && bRejected) return -1;
-			return 0;
-		})
+
+	// Filter accepted listings for the pinned accordion
+	const acceptedRecords = $derived(records.filter((r) => r.status === 'ACCEPTED'));
+
+	// Main list excludes ACCEPTED and sorts by priority (SCHEDULED -> QUEUED -> REJECT)
+	const mainSortedRecords = $derived(
+		records
+			.filter((r) => r.status !== 'ACCEPTED')
+			.sort((a, b) => {
+				const priorityA = statusPriority[a.status] ?? 99;
+				const priorityB = statusPriority[b.status] ?? 99;
+				return priorityA - priorityB;
+			})
 	);
 
 	// ── session restore on load ──────────────────────────
@@ -280,8 +292,28 @@
 					<span class="empty-state-text">Properties you save will show up here, most recent first.</span>
 				</div>
 			{:else}
+				<!-- ACCORDION FOR ACCEPTED LISTINGS -->
+				{#if acceptedRecords.length > 0}
+					<details class="accepted-accordion">
+						<summary class="accepted-summary">
+							<span>ACCEPTED PROPERTIES ({acceptedRecords.length})</span>
+						</summary>
+						<div class="property-cards accordion-content">
+							{#each acceptedRecords as record (record.id)}
+								<PropertyCard
+									{record}
+									onView={viewRecord}
+									onEdit={editRecordById}
+									onDelete={deleteRecordHandler}
+								/>
+							{/each}
+						</div>
+					</details>
+				{/if}
+
+				<!-- MAIN SORTED LIST: SCHEDULED -> QUEUED -> REJECT -->
 				<div class="property-cards">
-					{#each sortedRecords as record (record.id)}
+					{#each mainSortedRecords as record (record.id)}
 						<PropertyCard
 							{record}
 							onView={viewRecord}
@@ -298,3 +330,27 @@
 </main>
 
 <DryRunPanel bind:open={dryRunOpen} title={dryRunTitle} payload={dryRunPayload} />
+
+<style>
+	.accepted-accordion {
+		background-color: rgba(22, 163, 74, 0.08);
+		border: 1px solid rgba(22, 163, 74, 0.3);
+		border-radius: 8px;
+		margin-bottom: 1.25rem;
+		padding: 0.5rem 0.75rem;
+	}
+
+	.accepted-summary {
+		cursor: pointer;
+		font-weight: 700;
+		color: #15803d;
+		font-size: 0.85rem;
+		letter-spacing: 0.05em;
+		user-select: none;
+		outline: none;
+	}
+
+	.accordion-content {
+		margin-top: 0.75rem;
+	}
+</style>
