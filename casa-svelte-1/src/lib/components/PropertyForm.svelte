@@ -1,9 +1,50 @@
 <script>
-	import { recordTotal } from '$lib/model.js';
+	import { onMount } from 'svelte';
+	import { emptyRecord, recordTotal } from '$lib/model.js';
 	import { computeStatus, parseCoordinates, distanceFromRef } from '$lib/derive.js';
 	import { formatMoney } from '$lib/format.js';
+	import { validateUrl, validateTourDate, validateRecord } from '$lib/validation.js';
 
-	let { record = $bindable(), editingId = null, submitLabel = 'Save property', onSubmit, onCancel } = $props();
+	let {
+		record = $bindable(),
+		editingId = null,
+		submitLabel = 'Save property',
+		onSubmit,
+		onCancel,
+		onClear
+	} = $props();
+
+	const DRAFT_STORAGE_KEY = 'casa_property_form_draft';
+
+	// Compute current local time ISO string for datetime-local min attribute
+	const minDateTime = $derived.by(() => {
+		const now = new Date();
+		const tzOffset = now.getTimezoneOffset() * 60000;
+		return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+	});
+
+	// Restore draft on mount if creating a new entry
+	onMount(() => {
+		if (!editingId && typeof window !== 'undefined') {
+			try {
+				const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+				if (savedDraft) {
+					const parsed = JSON.parse(savedDraft);
+					Object.assign(record, parsed);
+				}
+			} catch (e) {
+				console.warn('Could not restore draft from localStorage', e);
+			}
+		}
+	});
+
+	// Automatically persist form state changes to local storage
+	$effect(() => {
+		const serialized = JSON.stringify(record);
+		if (typeof window !== 'undefined' && !editingId) {
+			localStorage.setItem(DRAFT_STORAGE_KEY, serialized);
+		}
+	});
 
 	// Force default verdict fallback
 	if (!record.verdict) {
@@ -20,6 +61,11 @@
 		const coords = parseCoordinates(record.coordinates_input);
 		return coords ? distanceFromRef(coords) : undefined;
 	});
+
+	// Live validation state derivations
+	const urlValidation = $derived.by(() => validateUrl(record.url));
+	const tourDateValidation = $derived.by(() => validateTourDate(record.tour_date));
+	const allValidation = $derived.by(() => validateRecord(record));
 
 	// Derive live status based on verdict and tour date
 	const liveStatus = $derived(computeStatus(record.verdict, record.tour_date));
@@ -53,6 +99,17 @@
 		if (!Array.isArray(record.cost_other)) return;
 		record.cost_other = record.cost_other.filter((_, i) => i !== index);
 	}
+
+	function handleClearDraft() {
+		if (typeof window !== 'undefined') {
+			localStorage.removeItem(DRAFT_STORAGE_KEY);
+		}
+		if (onClear) {
+			onClear();
+		} else {
+			record = emptyRecord();
+		}
+	}
 </script>
 
 <div class="view-form active">
@@ -70,7 +127,17 @@
 		<div class="grid-2">
 			<div class="field">
 				<label class="field-label" for="url">Listing URL <span class="req">*</span></label>
-				<input type="url" id="url" placeholder="https://rentals.ca/…" bind:value={record.url} required />
+				<input
+					type="url"
+					id="url"
+					placeholder="https://rentals.ca/…"
+					bind:value={record.url}
+					class:input-error={!urlValidation.valid}
+					required
+				/>
+				{#if !urlValidation.valid}
+					<div class="error-msg">{urlValidation.message}</div>
+				{/if}
 			</div>
 			<div class="field">
 				<label class="field-label" for="contact">Contact</label>
@@ -119,14 +186,29 @@
 		</div>
 		<div class="grid-2">
 			<div class="field">
-				<label class="field-label" for="tour_date">Tour date & time</label>
-				<input type="datetime-local" id="tour_date" bind:value={record.tour_date} />
-			</div>
-			<div class="field field-checkbox-container">
-				<label class="checkbox-inline">
-					<input type="checkbox" bind:checked={record.tour_requested} disabled={!!record.tour_date} />
-					<span class="checkbox-text">Tour requested</span>
+				<label class="field-label" for="tour_requested">Tour Status</label>
+				<label class="checkbox-box-field" class:disabled={!!record.tour_date}>
+					<input
+						type="checkbox"
+						id="tour_requested"
+						bind:checked={record.tour_requested}
+						disabled={!!record.tour_date}
+					/>
+					<span class="checkbox-box-label">Tour requested</span>
 				</label>
+			</div>
+			<div class="field">
+				<label class="field-label" for="tour_date">Tour date & time</label>
+				<input
+					type="datetime-local"
+					id="tour_date"
+					min={minDateTime}
+					bind:value={record.tour_date}
+					class:input-error={!tourDateValidation.valid}
+				/>
+				{#if !tourDateValidation.valid}
+					<div class="error-msg">{tourDateValidation.message}</div>
+				{/if}
 			</div>
 		</div>
 	</section>
@@ -254,55 +336,33 @@
 		</div>
 	</section>
 
-	<!-- SUBMIT ───────────────────────────────────────── -->
+	<!-- SUBMIT & ACTIONS ─────────────────────────────── -->
 	<div class="form-actions">
 		{#if editingId}
 			<button type="button" class="btn-secondary" onclick={onCancel}>Cancel edit</button>
+		{:else}
+			<button type="button" class="btn-secondary" onclick={handleClearDraft}>Clear draft</button>
 		{/if}
 		<button
 			type="button"
 			class="btn-submit"
-			class:dry-run={submitLabel.startsWith('⚠')}
+			class:dry-run={submitLabel.startsWith('⚠') || !allValidation.valid}
+			disabled={!allValidation.valid}
 			onclick={onSubmit}
 		>
 			{submitLabel}
 		</button>
 	</div>
-</div>
 
-<style>
-	.req {
-		color: #ff0055;
-	}
-	.field-checkbox-container {
-		display: flex;
-		align-items: flex-end;
-		padding-bottom: 0.5rem;
-	}
-	.checkbox-inline {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		cursor: pointer;
-		user-select: none;
-		font-size: 0.9rem;
-	}
-	.input-readonly {
-		opacity: 0.65;
-		cursor: not-allowed;
-		background: rgba(255, 255, 255, 0.03);
-	}
-	.section-label-eval {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-	.subtle-score {
-		font-size: 0.75rem;
-		font-family: 'JetBrains Mono', monospace;
-		color: rgba(255, 255, 255, 0.45);
-		font-weight: 400;
-		text-transform: none;
-		letter-spacing: normal;
-	}
-</style>
+	<!-- DUPLICATED FORM ERRORS BELOW SUBMIT BUTTON -->
+	{#if !allValidation.valid}
+		<div class="form-bottom-errors">
+			<div class="form-bottom-errors-title">Validation errors:</div>
+			<ul>
+				{#each allValidation.errors as err}
+					<li>{err}</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+</div>

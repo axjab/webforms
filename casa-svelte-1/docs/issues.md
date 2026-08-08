@@ -1,24 +1,34 @@
 
 FAILED:
 
-- Make Tour requested bigger, move to the left of date picker, keep them close
-- validation message: need VALID url (add validation)
+
+- add URL validation for navigation url: DO NOT CHECK FOR NULL or EMPTY, just format
+
+- move all rejected entries in "archived" accordion similar to accepted ones
 - make countdown more compact in Card view
 
-- persist text in storage for unsubmitted forms
 - add issues to model
+
+- add base cost to detail view
+
+- find a way to computed coordinates from URL
 
 Issue
 -----
 id : string
 description : string
-type : string(BUG, UPGRADE)
+type : string(BUG, UPGRADE) 
 status : string(Open, Closed)
 priority : string(low, medium, high)
 
 /api/collections/casa_issues/records/RECORD_ID
 
 Token only required for update and delete, otherwise always accessible.
+
+---
+[svelte] ownership_invalid_mutationMutating unbound props (`record`, at src/​lib/​components/​PropertyForm.svelte:34:3) is strongly discouraged. Consider using `bind:record={...}` in src/routes/+page.svelte (or using a callback) instead
+---
+
 
 LOW-PRIORITY:
 
@@ -27,6 +37,11 @@ LOW-PRIORITY:
 
 OK: (keep for regression)
 
+- copy/duplicate all error messages at the  bottom of the form, just under the save button
+- cannot schedule tour date in the past
+- persist text in storage for unsubmitted forms
+- Make Tour requested bigger, move to the left of date picker, keep them close
+- validation message: need VALID url (add validation)
 - url is mandatory
 - Make the score field not field-shaped, a bit more subtle
 - status is READ-ONLY

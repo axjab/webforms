@@ -30,6 +30,8 @@
 	let dryRunTitle = $state('');
 	let dryRunPayload = $state(null);
 
+	const DRAFT_STORAGE_KEY = 'casa_property_form_draft';
+
 	// Status priority map for sorting non-accepted cards
 	const statusPriority = {
 		SCHEDULED: 1,
@@ -67,6 +69,23 @@
 		}
 	});
 
+	function clearFormDraft() {
+		if (typeof window !== 'undefined') {
+			localStorage.removeItem(DRAFT_STORAGE_KEY);
+		}
+	}
+
+	function handleClearDraft() {
+		clearFormDraft();
+		formRecord = emptyRecord();
+	}
+
+	function cancelEdit() {
+		editingId = null;
+		formRecord = emptyRecord();
+		clearFormDraft();
+	}
+
 	// ── view switching ────────────────────────────────────
 	function newEntry() {
 		editingId = null;
@@ -77,10 +96,6 @@
 	async function goToList() {
 		view = 'list';
 		if (auth.token) await loadRecords();
-	}
-
-	function goToForm() {
-		view = 'form';
 	}
 
 	function viewRecord(id) {
@@ -97,11 +112,6 @@
 		formRecord = fromApiRecord(record);
 		editingId = id;
 		view = 'form';
-	}
-
-	function cancelEdit() {
-		editingId = null;
-		formRecord = emptyRecord();
 	}
 
 	function doLogout() {
@@ -182,6 +192,7 @@
 				type: 'success',
 				text: isUpdate ? `Updated — record ${data.id}` : `Saved — record ${data.id}`
 			};
+			clearFormDraft();
 			editingId = null;
 			formRecord = emptyRecord();
 			await goToList(); // post-submission: land on the most-recent-first listing
@@ -241,7 +252,7 @@
 
 	{#if statusMessage}
 		<div class="status-bar visible {statusMessage.type}">
-			<span>{statusMessage.text}</span>
+			<pre class="status-text">{statusMessage.text}</pre>
 			<span class="status-close" onclick={() => (statusMessage = null)}>✕</span>
 		</div>
 	{/if}
@@ -253,7 +264,14 @@
 				<span class="editing-banner-cancel" onclick={cancelEdit}>Cancel</span>
 			</div>
 		{/if}
-		<PropertyForm record={formRecord} {editingId} {submitLabel} onSubmit={submitForm} onCancel={cancelEdit} />
+		<PropertyForm
+			record={formRecord}
+			{editingId}
+			{submitLabel}
+			onSubmit={submitForm}
+			onCancel={cancelEdit}
+			onClear={handleClearDraft}
+		/>
 	{:else if view === 'list'}
 		<div class="view-list active">
 			<div class="list-toolbar">
@@ -330,27 +348,3 @@
 </main>
 
 <DryRunPanel bind:open={dryRunOpen} title={dryRunTitle} payload={dryRunPayload} />
-
-<style>
-	.accepted-accordion {
-		background-color: rgba(22, 163, 74, 0.08);
-		border: 1px solid rgba(22, 163, 74, 0.3);
-		border-radius: 8px;
-		margin-bottom: 1.25rem;
-		padding: 0.5rem 0.75rem;
-	}
-
-	.accepted-summary {
-		cursor: pointer;
-		font-weight: 700;
-		color: #15803d;
-		font-size: 0.85rem;
-		letter-spacing: 0.05em;
-		user-select: none;
-		outline: none;
-	}
-
-	.accordion-content {
-		margin-top: 0.75rem;
-	}
-</style>

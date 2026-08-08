@@ -42,22 +42,49 @@ export async function fetchRecords(token) {
 export async function createRecord(token, payload) {
 	const res = await fetch(`${BASE_URL}/api/collections/casa_properties/records`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json', Authorization: token },
+		headers: { 
+			'Content-Type': 'application/json', 
+			Authorization: token 
+		},
 		body: JSON.stringify(payload)
 	});
+
 	const data = await parseJson(res);
-	if (!res.ok) throw new Error(data.message || 'Create failed');
+
+	if (!res.ok) {
+		// Extract nested field errors if present, otherwise stringify the whole response body
+		const serverDetails = data?.data && Object.keys(data.data).length > 0
+			? JSON.stringify(data.data, null, 2)
+			: JSON.stringify(data, null, 2);
+
+		const errorMessage = `${data?.message || 'Create failed'}\n\nServer Response:\n${serverDetails}`;
+		throw new Error(errorMessage);
+	}
+
 	return data;
 }
 
 export async function updateRecord(token, id, payload) {
 	const res = await fetch(`${BASE_URL}/api/collections/casa_properties/records/${id}`, {
 		method: 'PATCH',
-		headers: { 'Content-Type': 'application/json', Authorization: token },
+		headers: { 
+			'Content-Type': 'application/json', 
+			Authorization: token 
+		},
 		body: JSON.stringify(payload)
 	});
+
 	const data = await parseJson(res);
-	if (!res.ok) throw new Error(data.message || 'Update failed');
+
+	if (!res.ok) {
+		const serverDetails = data?.data && Object.keys(data.data).length > 0
+			? JSON.stringify(data.data, null, 2)
+			: JSON.stringify(data, null, 2);
+
+		const errorMessage = `${data?.message || 'Update failed'}\n\nServer Response:\n${serverDetails}`;
+		throw new Error(errorMessage);
+	}
+
 	return data;
 }
 

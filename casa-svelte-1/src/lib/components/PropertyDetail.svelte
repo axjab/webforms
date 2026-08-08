@@ -1,4 +1,4 @@
-<script>
+<!-- <script>
 	import { recordTotal } from '$lib/model.js';
 	import { formatMoney, formatDate, formatDateTime, linkifyContact } from '$lib/format.js';
 
@@ -71,4 +71,4 @@
 	<div class="property-detail-actions">
 		<button type="button" class="btn-submit" onclick={() => onEdit(record.id)}>Edit this property</button>
 	</div>
-</div>
+</div> -->

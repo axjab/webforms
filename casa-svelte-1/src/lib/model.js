@@ -12,7 +12,7 @@ export function emptyRecord() {
 		cost_water: '',
 		cost_power: '',
 		cost_internet: 40,
-		cost_laundry: '',
+		cost_laundry: 35,
 		cost_other: [],
 		score: '',
 		tour_date: '',
