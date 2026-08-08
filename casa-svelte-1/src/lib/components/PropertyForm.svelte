@@ -1,9 +1,21 @@
 <script>
 	import { onMount } from 'svelte';
 	import { emptyRecord, recordTotal } from '$lib/model.js';
-	import { computeStatus, parseCoordinates, distanceFromRef, extractCoordsFromUrl } from '$lib/derive.js';
+	import {
+		computeStatus,
+		parseCoordinates,
+		formatCoordinates,
+		distanceFromRef,
+		extractCoordsFromUrl,
+		geocodeAddress
+	} from '$lib/derive.js';
 	import { formatMoney } from '$lib/format.js';
-	import { validateUrl, validateTourDate, validateRecord, validateNavigationUrl } from '$lib/validation.js';
+	import {
+		validateUrl,
+		validateTourDate,
+		validateRecord,
+		validateNavigationUrl
+	} from '$lib/validation.js';
 
 	let {
 		record = $bindable(),
@@ -16,6 +28,11 @@
 
 	const DRAFT_STORAGE_KEY = 'casa_property_form_draft';
 
+	// Geocoding state
+	let isGeocoding = $state(false);
+	let geocodeError = $state('');
+	let geocodeSuccess = $state(false);
+
 	// Compute current local time ISO string for datetime-local min attribute
 	const minDateTime = $derived.by(() => {
 		const now = new Date();
@@ -23,7 +40,7 @@
 		return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
 	});
 
-	// Restore draft on mount if creating a new entry
+	// Restore draft on mount or initialize string input from existing coordinates object
 	onMount(() => {
 		if (!editingId && typeof window !== 'undefined') {
 			try {
@@ -34,6 +51,17 @@
 				}
 			} catch (e) {
 				console.warn('Could not restore draft from localStorage', e);
+			}
+		}
+
+		// Initialize coordinates_input string if existing record has non-zero coordinate numbers
+		if (
+			record.coordinates &&
+			typeof record.coordinates.lat === 'number' &&
+			typeof record.coordinates.lon === 'number'
+		) {
+			if (record.coordinates.lat !== 0 || record.coordinates.lon !== 0) {
+				record.coordinates_input = `${record.coordinates.lat},${record.coordinates.lon}`;
 			}
 		}
 	});
@@ -57,12 +85,23 @@
 	}
 
 	const total = $derived(recordTotal(record));
-	const liveDistance = $derived.by(() => {
-		const coords = parseCoordinates(record.coordinates_input);
-		return coords ? distanceFromRef(coords) : undefined;
+
+	// Synchronize coordinates_input text string directly into record.coordinates { lat, lon } object
+	$effect(() => {
+		const parsed = parseCoordinates(record.coordinates_input);
+		if (parsed) {
+			record.coordinates = {
+				lat: Number(parsed.lat),
+				lon: Number(parsed.lon)
+			};
+			record.distance_from_ref = distanceFromRef(parsed);
+		} else if (!record.coordinates_input || !record.coordinates_input.trim()) {
+			record.coordinates = { lat: 0, lon: 0 };
+			record.distance_from_ref = undefined;
+		}
 	});
 
-	// Live coordinate extraction derivation
+	// Live coordinate extraction derivation from Navigation URL
 	const extractedCoords = $derived.by(() => extractCoordsFromUrl(record.navigation_url));
 
 	// Show warning if navigation_url is non-empty, URL syntax is valid, but coords couldn't be parsed
@@ -71,12 +110,86 @@
 		return hasUrl && navigationUrlValidation.valid && !extractedCoords;
 	});
 
-	// Automatically update coordinates_input whenever navigation_url produces valid coordinates
+	// Automatically update coordinates_input and object payload when navigation_url extracts coordinates
 	$effect(() => {
 		if (extractedCoords) {
 			record.coordinates_input = extractedCoords;
+			const parsed = parseCoordinates(extractedCoords);
+			if (parsed) {
+				record.coordinates = {
+					lat: Number(parsed.lat),
+					lon: Number(parsed.lon)
+				};
+				record.distance_from_ref = distanceFromRef(parsed);
+			}
 		}
 	});
+
+	// Geocode address explicitly on user request
+	async function handleLookup() {
+		if (!record.address || !record.address.trim()) return;
+		isGeocoding = true;
+		geocodeError = '';
+		geocodeSuccess = false;
+
+		console.log('📍 [PropertyForm] Geocoding address:', record.address);
+		const coords = await geocodeAddress(record.address);
+		if (coords) {
+			console.log('📍 [PropertyForm] Geocode result:', coords);
+			record.coordinates_input = coords;
+			const parsed = parseCoordinates(coords);
+			if (parsed) {
+				record.coordinates = {
+					lat: Number(parsed.lat),
+					lon: Number(parsed.lon)
+				};
+				record.distance_from_ref = distanceFromRef(parsed);
+			}
+			geocodeSuccess = true;
+			setTimeout(() => {
+				geocodeSuccess = false;
+			}, 4000);
+		} else {
+			console.warn('📍 [PropertyForm] Geocode failed for address:', record.address);
+			geocodeError = 'No coordinates found for this address';
+			setTimeout(() => {
+				geocodeError = '';
+			}, 4000);
+		}
+		isGeocoding = false;
+	}
+
+async function handleSubmit() {
+    const parsed = parseCoordinates(record.coordinates_input);
+    if (parsed) {
+        record.coordinates = {
+            lat: Number(parsed.lat),
+            lon: Number(parsed.lon)
+        };
+        record.distance_from_ref = distanceFromRef(parsed);
+    } else {
+        record.coordinates = { lat: 0, lon: 0 };
+    }
+
+    // Un-proxy and clean empty numeric strings to null before sending
+    const payload = JSON.parse(JSON.stringify(record));
+    
+    const numericFields = ['cost_heat', 'cost_water', 'cost_power', 'cost_parking', 'cost_utilities', 'score'];
+    for (const key of numericFields) {
+        if (payload[key] === '' || payload[key] === undefined) {
+            payload[key] = null;
+        }
+    }
+
+    if (onSubmit) {
+        try {
+            // ✅ Pass the clean payload directly to parent handler
+            const res = await onSubmit(payload);
+        } catch (err) {
+            console.error('onSubmit Execution Error:', err);
+        }
+    }
+}
 
 	// Live validation state derivations
 	const urlValidation = $derived.by(() => validateUrl(record.url));
@@ -168,8 +281,33 @@
 	<section class="section">
 		<div class="section-label">Identity</div>
 		<div class="field">
-			<label class="field-label" for="address">Address <span class="req">*</span></label>
-			<input type="text" id="address" placeholder="44 Ontario Street, Ottawa" bind:value={record.address} required />
+			<div class="label-with-action">
+				<label class="field-label" for="address">Address <span class="req">*</span></label>
+				<button
+					type="button"
+					class="btn-text-action"
+					onclick={handleLookup}
+					disabled={isGeocoding || !record.address?.trim()}
+				>
+					{#if isGeocoding}
+						Searching...
+					{:else}
+						📍 Find coords from address
+					{/if}
+				</button>
+			</div>
+			<input
+				type="text"
+				id="address"
+				placeholder="44 Ontario Street, Ottawa"
+				bind:value={record.address}
+				required
+			/>
+			{#if geocodeError}
+				<div class="unparseable-hint error">{geocodeError}</div>
+			{:else if geocodeSuccess}
+				<div class="unparseable-hint success">✓ Coordinates updated from address</div>
+			{/if}
 		</div>
 		<div class="field">
 			<label class="field-label" for="cost_base">Base cost <span class="req">*</span></label>
@@ -206,24 +344,28 @@
 	<!-- LOCATION & TOUR ──────────────────────────────── -->
 	<section class="section">
 		<div class="section-label">Location & Tour</div>
-	<div class="field">
-		<label class="field-label" for="navigation_url">Navigation URL</label>
-		<input
-			type="text"
-			id="navigation_url"
-			placeholder="https://maps.example.com/…"
-			bind:value={record.navigation_url}
-			class:input-error={!navigationUrlValidation.valid}
-		/>
-		{#if !navigationUrlValidation.valid}
-			<div class="error-msg">{navigationUrlValidation.message}</div>
-		{:else if showUnparseableNotice}
-			<div class="unparseable-hint">
-				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-				Could not auto-extract coordinates from link
-			</div>
-		{/if}
-	</div>
+		<div class="field">
+			<label class="field-label" for="navigation_url">Navigation URL</label>
+			<input
+				type="text"
+				id="navigation_url"
+				placeholder="https://maps.example.com/…"
+				bind:value={record.navigation_url}
+				class:input-error={!navigationUrlValidation.valid}
+			/>
+			{#if !navigationUrlValidation.valid}
+				<div class="error-msg">{navigationUrlValidation.message}</div>
+			{:else if showUnparseableNotice}
+				<div class="unparseable-hint">
+					<svg viewBox="0 0 24 24" fill="currentColor">
+						<path
+							d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+						/>
+					</svg>
+					Could not auto-extract coordinates from link
+				</div>
+			{/if}
+		</div>
 		<div class="grid-2">
 			<div class="field">
 				<label class="field-label" for="coordinates">Location (lat,lon)</label>
@@ -239,7 +381,7 @@
 				<input
 					type="text"
 					id="distance_from_ref"
-					value={liveDistance !== undefined ? `${liveDistance} km` : '—'}
+					value={record.distance_from_ref != null ? `${record.distance_from_ref} km` : '—'}
 					disabled
 				/>
 			</div>
@@ -261,7 +403,9 @@
 				<label class="field-label" for="tour_date">Tour date & time</label>
 				<div class="custom-datetime-wrapper" class:input-error={!tourDateValidation.valid}>
 					<svg class="datetime-icon" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 3h-2v5l4.25 2.52.75-1.23-3.5-2.09V11z"/>
+						<path
+							d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 3h-2v5l4.25 2.52.75-1.23-3.5-2.09V11z"
+						/>
 					</svg>
 					<input
 						type="datetime-local"
@@ -338,7 +482,9 @@
 			<div class="field">
 				<label class="field-label field-label-icon" for="cost_heat">
 					<svg class="cost-icon icon-heat" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M12 2.1c1.07 3.13 4.8 4.7 4.8 8.4 0 3.09-2.51 5.6-5.6 5.6S5.6 13.59 5.6 10.5c0-3.7 3.73-5.27 4.8-8.4zm0 6.4c-.45 1.3-2 1.95-2 3.5 0 1.1.9 2 2 2s2-.9 2-2c0-1.55-1.55-2.2-2-3.5z" />
+						<path
+							d="M12 2.1c1.07 3.13 4.8 4.7 4.8 8.4 0 3.09-2.51 5.6-5.6 5.6S5.6 13.59 5.6 10.5c0-3.7 3.73-5.27 4.8-8.4zm0 6.4c-.45 1.3-2 1.95-2 3.5 0 1.1.9 2 2 2s2-.9 2-2c0-1.55-1.55-2.2-2-3.5z"
+						/>
 					</svg>
 					Heat
 				</label>
@@ -356,7 +502,9 @@
 			<div class="field">
 				<label class="field-label field-label-icon" for="cost_power">
 					<svg class="cost-icon icon-power" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M11 21h-1l1-7H7.5c-.88 0-.33-.75-.31-.78C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .78.33.69.83L11 21z" />
+						<path
+							d="M11 21h-1l1-7H7.5c-.88 0-.33-.75-.31-.78C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .78.33.69.83L11 21z"
+						/>
 					</svg>
 					Power
 				</label>
@@ -365,7 +513,9 @@
 			<div class="field">
 				<label class="field-label field-label-icon" for="cost_internet">
 					<svg class="cost-icon icon-internet" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 6c-2.48 0-4.74.88-6.51 2.33L12 19.12l6.51-6.79C16.74 10.88 14.48 10 12 10z" />
+						<path
+							d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 6c-2.48 0-4.74.88-6.51 2.33L12 19.12l6.51-6.79C16.74 10.88 14.48 10 12 10z"
+						/>
 					</svg>
 					Internet
 				</label>
@@ -374,7 +524,9 @@
 			<div class="field">
 				<label class="field-label field-label-icon" for="cost_laundry">
 					<svg class="cost-icon icon-laundry" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M18 2.01L6 2c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h12c1.11 0 2-.89 2-2V4c0-1.11-.89-1.99-2-1.99zM10 4h4v2h-4V4zm2 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" />
+						<path
+							d="M18 2.01L6 2c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h12c1.11 0 2-.89 2-2V4c0-1.11-.89-1.99-2-1.99zM10 4h4v2h-4V4zm2 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"
+						/>
 					</svg>
 					Laundry
 				</label>
@@ -383,7 +535,9 @@
 			<div class="field">
 				<label class="field-label field-label-icon" for="cost_parking">
 					<svg class="cost-icon icon-parking" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M13 3H6v18h4v-6h3c3.31 0 6-2.69 6-6s-2.69-6-6-6zm.2 7H10V7h3.2c1.1 0 2 .9 2 2s-.9 2-2 2z" />
+						<path
+							d="M13 3H6v18h4v-6h3c3.31 0 6-2.69 6-6s-2.69-6-6-6zm.2 7H10V7h3.2c1.1 0 2 .9 2 2s-.9 2-2 2z"
+						/>
 					</svg>
 					Parking
 				</label>
@@ -397,7 +551,9 @@
 				<div class="cost-other-row">
 					<input type="text" placeholder="label (e.g. storage)" bind:value={row.label} />
 					<input type="number" placeholder="0" bind:value={row.amount} />
-					<button type="button" class="btn-remove-other" onclick={() => removeCostOtherRow(i)}>−</button>
+					<button type="button" class="btn-remove-other" onclick={() => removeCostOtherRow(i)}
+						>−</button
+					>
 				</div>
 			{/each}
 			<button type="button" class="btn-add-other" onclick={addCostOtherRow}>+ Add expense</button>
@@ -405,7 +561,11 @@
 
 		<div class="cost-total-row">
 			<span class="cost-total-label">Monthly total</span>
-			<span class="cost-total-value mono" class:warn={total > 1300 && total <= 1500} class:over={total > 1500}>
+			<span
+				class="cost-total-value mono"
+				class:warn={total > 1300 && total <= 1500}
+				class:over={total > 1500}
+			>
 				{formatMoney(total)}
 			</span>
 		</div>
@@ -421,7 +581,13 @@
 		<div class="grid-2">
 			<div class="field">
 				<label class="field-label" for="status_readonly">Status (read-only)</label>
-				<input type="text" id="status_readonly" value={record.status} disabled class="input-readonly" />
+				<input
+					type="text"
+					id="status_readonly"
+					value={record.status}
+					disabled
+					class="input-readonly"
+				/>
 			</div>
 			<div class="field">
 				<label class="field-label" for="verdict">Verdict</label>
@@ -457,7 +623,7 @@
 			class="btn-submit"
 			class:dry-run={submitLabel.startsWith('⚠') || !allValidation.valid}
 			disabled={!allValidation.valid}
-			onclick={onSubmit}
+			onclick={handleSubmit}
 		>
 			{submitLabel}
 		</button>
@@ -477,6 +643,41 @@
 </div>
 
 <style>
+	/* Header label with action button */
+	.label-with-action {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 4px;
+	}
+
+	.label-with-action .field-label {
+		margin-bottom: 0;
+	}
+
+	.btn-text-action {
+		background: transparent;
+		border: none;
+		color: var(--accent);
+		font-size: 11px;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 0;
+		opacity: 0.85;
+		transition: opacity 0.15s ease;
+	}
+
+	.btn-text-action:hover:not(:disabled) {
+		opacity: 1;
+		text-decoration: underline;
+	}
+
+	.btn-text-action:disabled {
+		color: var(--muted);
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
 	/* Enhanced Chip styling */
 	.chip {
 		display: inline-flex;
@@ -573,78 +774,79 @@
 	}
 
 	/* Custom Datetime Input Styling */
-.custom-datetime-wrapper {
-	display: flex;
-	align-items: center;
-	position: relative;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	padding: 0 10px;
-	transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
+	.custom-datetime-wrapper {
+		display: flex;
+		align-items: center;
+		position: relative;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		padding: 0 10px;
+		transition:
+			border-color 0.15s ease,
+			box-shadow 0.15s ease;
+	}
 
-.custom-datetime-wrapper:focus-within {
-	border-color: var(--accent);
-	box-shadow: 0 0 0 2px rgba(124, 156, 255, 0.2);
-}
+	.custom-datetime-wrapper:focus-within {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px rgba(124, 156, 255, 0.2);
+	}
 
-.custom-datetime-wrapper.input-error {
-	border-color: var(--red);
-}
+	.custom-datetime-wrapper.input-error {
+		border-color: var(--red);
+	}
 
-.datetime-icon {
-	width: 18px;
-	height: 18px;
-	fill: var(--accent);
-	flex-shrink: 0;
-	margin-right: 8px;
-	pointer-events: none;
-}
+	.datetime-icon {
+		width: 18px;
+		height: 18px;
+		fill: var(--accent);
+		flex-shrink: 0;
+		margin-right: 8px;
+		pointer-events: none;
+	}
 
-.styled-datetime-input {
-	flex: 1;
-	background: transparent;
-	border: none;
-	outline: none;
-	color: var(--text);
-	font-family: inherit;
-	font-size: 13px;
-	padding: 8px 0;
-	color-scheme: dark; /* Forces native mobile date pickers to open in dark mode */
-}
+	.styled-datetime-input {
+		flex: 1;
+		background: transparent;
+		border: none;
+		outline: none;
+		color: var(--text);
+		font-family: inherit;
+		font-size: 13px;
+		padding: 8px 0;
+		color-scheme: dark;
+	}
 
-/* Customizing standard calendar indicator icon in WebKit engines */
-.styled-datetime-input::-webkit-calendar-picker-indicator {
-	cursor: pointer;
-	filter: invert(0.8);
-	opacity: 0.6;
-	transition: opacity 0.15s ease;
-}
+	.styled-datetime-input::-webkit-calendar-picker-indicator {
+		cursor: pointer;
+		filter: invert(0.8);
+		opacity: 0.6;
+		transition: opacity 0.15s ease;
+	}
 
-.styled-datetime-input::-webkit-calendar-picker-indicator:hover {
-	opacity: 1;
-}
+	.styled-datetime-input::-webkit-calendar-picker-indicator:hover {
+		opacity: 1;
+	}
 
-.btn-clear-date {
-	background: transparent;
-	border: none;
-	color: var(--muted);
-	font-size: 12px;
-	padding: 4px 6px;
-	cursor: pointer;
-	border-radius: 4px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
+	.btn-clear-date {
+		background: transparent;
+		border: none;
+		color: var(--muted);
+		font-size: 12px;
+		padding: 4px 6px;
+		cursor: pointer;
+		border-radius: 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
 
-.btn-clear-date:hover {
-	color: var(--red);
-	background: rgba(248, 81, 73, 0.1);
-}
+	.btn-clear-date:hover {
+		color: var(--red);
+		background: rgba(248, 81, 73, 0.1);
+	}
 
-/* Tiny non-distracting hint for unparseable URLs */
+	/* Tiny non-distracting hints */
 	.unparseable-hint {
 		display: inline-flex;
 		align-items: center;
@@ -652,7 +854,17 @@
 		font-size: 11px;
 		color: var(--muted);
 		margin-top: 4px;
-		opacity: 0.75;
+		opacity: 0.8;
+	}
+
+	.unparseable-hint.error {
+		color: var(--red);
+		opacity: 1;
+	}
+
+	.unparseable-hint.success {
+		color: var(--green);
+		opacity: 1;
 	}
 
 	.unparseable-hint svg {
@@ -660,5 +872,4 @@
 		height: 12px;
 		flex-shrink: 0;
 	}
-
 </style>

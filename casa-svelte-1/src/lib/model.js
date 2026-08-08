@@ -75,39 +75,31 @@ export function fromApiRecord(record) {
 	};
 }
 
-export function toApiPayload(formRecord) {
-	const payload = {
-		address: formRecord.address?.trim() || '',
-		url: formRecord.url?.trim() || '',
-		status: formRecord.status || 'QUEUED',
-		verdict: formRecord.verdict || 'UNDECIDED',
-		cost_base: formRecord.cost_base !== '' && formRecord.cost_base !== null ? Number(formRecord.cost_base) : null,
-		cost_parking: formRecord.cost_parking !== '' && formRecord.cost_parking !== null ? Number(formRecord.cost_parking) : null,
-		cost_utilities: formRecord.cost_utilities !== '' && formRecord.cost_utilities !== null ? Number(formRecord.cost_utilities) : null,
-		cost_heat: formRecord.cost_heat !== '' && formRecord.cost_heat !== null ? Number(formRecord.cost_heat) : null,
-		cost_water: formRecord.cost_water !== '' && formRecord.cost_water !== null ? Number(formRecord.cost_water) : null,
-		cost_power: formRecord.cost_power !== '' && formRecord.cost_power !== null ? Number(formRecord.cost_power) : null,
-		cost_internet: formRecord.cost_internet !== '' && formRecord.cost_internet !== null ? Number(formRecord.cost_internet) : 40,
-		cost_laundry: formRecord.cost_laundry !== '' && formRecord.cost_laundry !== null ? Number(formRecord.cost_laundry) : null,
-		score: formRecord.score !== '' && formRecord.score !== null ? Number(formRecord.score) : null,
-		navigation_url: formRecord.navigation_url?.trim() || '',
-		has_parking: Boolean(formRecord.has_parking),
-		parking_nearby: Boolean(formRecord.parking_nearby),
-		has_storage: Boolean(formRecord.has_storage),
-		has_gym: Boolean(formRecord.has_gym),
-		has_pool: Boolean(formRecord.has_pool),
-		is_furnished: Boolean(formRecord.is_furnished),
-		notes: formRecord.notes?.trim() || ''
-	};
+// $lib/model.js
+export function toApiPayload(record) {
+    const numericFields = ['cost_base', 'cost_heat', 'cost_water', 'cost_power', 'cost_parking', 'cost_utilities', 'score', 'distance_from_ref'];
+    
+    const payload = { ...record };
 
-	if (formRecord.tour_date) {
-		const parsed = new Date(formRecord.tour_date);
-		payload.tour_date = !Number.isNaN(parsed.getTime()) ? parsed.toISOString() : null;
-	} else {
-		payload.tour_date = null;
-	}
+    // Convert empty strings on numeric fields to null
+    for (const field of numericFields) {
+        if (payload[field] === '' || payload[field] === undefined) {
+            payload[field] = null;
+        } else if (payload[field] !== null) {
+            payload[field] = Number(payload[field]);
+        }
+    }
 
-	return payload;
+    // Ensure coordinates match PocketBase JSON/Object structure
+    if (typeof payload.coordinates === 'string') {
+        try {
+            payload.coordinates = JSON.parse(payload.coordinates);
+        } catch {
+            payload.coordinates = { lat: 0, lon: 0 };
+        }
+    }
+
+    return payload;
 }
 
 export function recordTotal(record) {

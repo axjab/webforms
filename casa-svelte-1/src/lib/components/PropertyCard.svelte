@@ -1,6 +1,7 @@
 <script>
 	import { recordTotal } from '$lib/model.js';
 	import { formatMoney, formatDate, formatDateTime, formatCountdown, linkifyContact } from '$lib/format.js';
+	import { getNavigationUrl } from '$lib/derive.js';
 
 	let { record, onEdit, onDelete } = $props();
 
@@ -26,13 +27,8 @@
 		};
 	});
 
-	// Navigation URL format
-	const goUrl = $derived.by(() => {
-		if (!record.navigation_url) return null;
-		const raw = record.navigation_url.trim();
-		if (!raw) return null;
-		return raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
-	});
+	// Derived navigation URL prioritizes coordinates over navigation_url
+	const goUrl = $derived(getNavigationUrl(record));
 
 	const badgeFields = [
 		['has_parking', 'Parking'],

@@ -1,12 +1,14 @@
-
 export function validateNavigationUrl(url) {
 	// Null, undefined, empty, or whitespace-only values are allowed
 	if (!url || typeof url !== 'string' || !url.trim()) {
 		return { valid: true };
 	}
 
+	const trimmed = url.trim();
+	const testUrl = trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
+
 	try {
-		new URL(url.trim());
+		new URL(testUrl);
 		return { valid: true };
 	} catch {
 		return { valid: false, message: 'Navigation URL must be a valid URL (e.g. https://maps.example.com)' };

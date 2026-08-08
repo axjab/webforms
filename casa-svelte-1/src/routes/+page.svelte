@@ -154,19 +154,25 @@
 	}
 
 	// ── submit (create or update) ──────────────────────────
-	async function submitForm() {
+	async function submitForm(incomingPayload) {
 		statusMessage = null;
 
-		if (!formRecord.address.trim()) {
+		// Use passed payload from PropertyForm, or fall back to formRecord
+		const source = incomingPayload || formRecord;
+
+		const address = source.address ? String(source.address).trim() : '';
+		if (!address) {
 			statusMessage = { type: 'error', text: 'Address is required.' };
 			return;
 		}
-		if (formRecord.cost_base === '' || formRecord.cost_base === null) {
+
+		if (source.cost_base === '' || source.cost_base === null || source.cost_base === undefined) {
 			statusMessage = { type: 'error', text: 'Base cost is required.' };
 			return;
 		}
 
-		const payload = toApiPayload(formRecord);
+		// Convert record state to PocketBase API schema format
+		const payload = toApiPayload(source);
 		const isUpdate = !!editingId;
 
 		// ── dry run (not authenticated) ─────────────────────
@@ -189,6 +195,7 @@
 			const data = isUpdate
 				? await updateRecord(auth.token, editingId, payload)
 				: await createRecord(auth.token, payload);
+
 			statusMessage = {
 				type: 'success',
 				text: isUpdate ? `Updated — record ${data.id}` : `Saved — record ${data.id}`

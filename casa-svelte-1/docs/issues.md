@@ -1,9 +1,4 @@
 
-FAILED:
-
-- coordinates from address?
-- accordion issues
-
 LOW-PRIORITY (open):
 
 - webhooks
@@ -12,6 +7,7 @@ LOW-PRIORITY (open):
 
 Closed: (keep for regression)
 
+- coordinates from address?
 - find a way to computed coordinates from URL
 - set up backup for Pocketbase (set up garage s3 for Pocketbase)
 - material icons for heat, water, power, internet, laundry, parking
