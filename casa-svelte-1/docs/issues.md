@@ -1,10 +1,8 @@
 
 FAILED:
 
-- detail view, expand card, no second page
 - prompt user, phone or mailto
-
-11. Make contact tel: and mailto: clickable
+- regrsesssion: status is read-write agai
 
 LOW-PRIORITY:
 
@@ -12,6 +10,7 @@ LOW-PRIORITY:
 
 OK:
 
+- detail view, expand card, no second page
 - Show a countdown to tour date in the card list/queue view (style is called glassmorphism)
 - Tour date persisted
 - Add a GO button in the cards which opens the navigation_url link
