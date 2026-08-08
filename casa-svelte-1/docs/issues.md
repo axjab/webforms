@@ -1,15 +1,36 @@
 
 FAILED:
 
-- prompt user, phone or mailto
-- regrsesssion: status is read-write agai
+- Make Tour requested bigger, move to the left of date picker, keep them close
+- validation message: need VALID url (add validation)
+- make countdown more compact in Card view
+
+- persist text in storage for unsubmitted forms
+- add issues to model
+
+Issue
+-----
+id : string
+description : string
+type : string(BUG, UPGRADE)
+status : string(Open, Closed)
+priority : string(low, medium, high)
+
+/api/collections/casa_issues/records/RECORD_ID
+
+Token only required for update and delete, otherwise always accessible.
 
 LOW-PRIORITY:
 
+- prompt user, phone or mailto
 - Absent nav url should NOT make app fall back to url
 
-OK:
+OK: (keep for regression)
 
+- url is mandatory
+- Make the score field not field-shaped, a bit more subtle
+- status is READ-ONLY
+- verdict undecided by default
 - detail view, expand card, no second page
 - Show a countdown to tour date in the card list/queue view (style is called glassmorphism)
 - Tour date persisted

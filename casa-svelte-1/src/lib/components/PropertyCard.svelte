@@ -63,7 +63,6 @@
 
 	<div class="property-card-meta">
 		<span class="mono">{formatMoney(total)}/mo</span>
-		<span>Rating {record.nabila_rating ?? '—'}/10</span>
 		<span>{formatDate(record.created)}</span>
 		<span class="property-card-status">{record.status}</span>
 	</div>
@@ -136,9 +135,6 @@
 
 				<dt>Monthly total</dt>
 				<dd class="mono">{formatMoney(total)}</dd>
-
-				<dt>Nabila's rating</dt>
-				<dd>{record.nabila_rating ?? '—'}/10</dd>
 
 				<dt>Score</dt>
 				<dd>{record.score ?? '—'}</dd>

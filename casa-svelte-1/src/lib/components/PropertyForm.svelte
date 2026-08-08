@@ -3,9 +3,17 @@
 	import { computeStatus, parseCoordinates, distanceFromRef } from '$lib/derive.js';
 	import { formatMoney } from '$lib/format.js';
 
-	// `record` is a Svelte 5 $state object owned by the parent page — we mutate
-	// its fields directly and the parent sees the changes immediately.
-	let { record, editingId = null, submitLabel = 'Save property', onSubmit, onCancel } = $props();
+	let { record = $bindable(), editingId = null, submitLabel = 'Save property', onSubmit, onCancel } = $props();
+
+	// Force default verdict fallback
+	if (!record.verdict) {
+		record.verdict = 'UNDECIDED';
+	}
+
+	// Force default internet cost fallback
+	if (record.cost_internet === undefined || record.cost_internet === '') {
+		record.cost_internet = 40;
+	}
 
 	const total = $derived(recordTotal(record));
 	const liveDistance = $derived.by(() => {
@@ -16,8 +24,7 @@
 	// Derive live status based on verdict and tour date
 	const liveStatus = $derived(computeStatus(record.verdict, record.tour_date));
 
-	// Keep record.status in sync with liveStatus whenever liveStatus changes,
-	// or fall back to whatever status is set on record
+	// Keep record.status read-only & bound to computed status
 	$effect(() => {
 		if (liveStatus) {
 			record.status = liveStatus;
@@ -54,16 +61,16 @@
 		<div class="section-label">Identity</div>
 		<div class="field">
 			<label class="field-label" for="address">Address <span class="req">*</span></label>
-			<input type="text" id="address" placeholder="44 Ontario Street, Ottawa" bind:value={record.address} />
+			<input type="text" id="address" placeholder="44 Ontario Street, Ottawa" bind:value={record.address} required />
 		</div>
 		<div class="field">
 			<label class="field-label" for="cost_base">Base cost <span class="req">*</span></label>
-			<input type="number" id="cost_base" placeholder="0" bind:value={record.cost_base} />
+			<input type="number" id="cost_base" placeholder="0" bind:value={record.cost_base} required />
 		</div>
 		<div class="grid-2">
 			<div class="field">
-				<label class="field-label" for="url">URL</label>
-				<input type="url" id="url" placeholder="https://rentals.ca/…" bind:value={record.url} />
+				<label class="field-label" for="url">Listing URL <span class="req">*</span></label>
+				<input type="url" id="url" placeholder="https://rentals.ca/…" bind:value={record.url} required />
 			</div>
 			<div class="field">
 				<label class="field-label" for="contact">Contact</label>
@@ -115,11 +122,10 @@
 				<label class="field-label" for="tour_date">Tour date & time</label>
 				<input type="datetime-local" id="tour_date" bind:value={record.tour_date} />
 			</div>
-			<div class="field">
-				<span class="field-label">Tour requested</span>
+			<div class="field field-checkbox-container">
 				<label class="checkbox-inline">
 					<input type="checkbox" bind:checked={record.tour_requested} disabled={!!record.tour_date} />
-					{record.tour_date ? 'Yes (forced by tour date)' : 'No'}
+					<span class="checkbox-text">Tour requested</span>
 				</label>
 			</div>
 		</div>
@@ -217,16 +223,14 @@
 
 	<!-- EVALUATION ───────────────────────────────────── -->
 	<section class="section">
-		<div class="section-label">Evaluation</div>
+		<div class="section-label section-label-eval">
+			<span>Evaluation</span>
+			<span class="subtle-score">Score: {record.score ?? '—'}</span>
+		</div>
 		<div class="grid-2">
 			<div class="field">
-				<label class="field-label" for="status">Status</label>
-				<select id="status" bind:value={record.status}>
-					<option value="QUEUED">QUEUED</option>
-					<option value="SCHEDULED">SCHEDULED</option>
-					<option value="ACCEPTED">ACCEPTED</option>
-					<option value="REJECTED">REJECTED</option>
-				</select>
+				<label class="field-label" for="status_readonly">Status (read-only)</label>
+				<input type="text" id="status_readonly" value={record.status} disabled class="input-readonly" />
 			</div>
 			<div class="field">
 				<label class="field-label" for="verdict">Verdict</label>
@@ -236,16 +240,6 @@
 					<option value="NO">No</option>
 					<option value="MAYBE">Maybe</option>
 				</select>
-			</div>
-		</div>
-		<div class="grid-2">
-			<div class="field">
-				<label class="field-label" for="nabila_rating">Nabila's rating (1–10)</label>
-				<input type="number" id="nabila_rating" min="1" max="10" placeholder="—" bind:value={record.nabila_rating} />
-			</div>
-			<div class="field">
-				<label class="field-label" for="score_readonly">Score (read-only)</label>
-				<input type="text" id="score_readonly" value={record.score ?? '—'} disabled />
 			</div>
 		</div>
 
@@ -275,3 +269,40 @@
 		</button>
 	</div>
 </div>
+
+<style>
+	.req {
+		color: #ff0055;
+	}
+	.field-checkbox-container {
+		display: flex;
+		align-items: flex-end;
+		padding-bottom: 0.5rem;
+	}
+	.checkbox-inline {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+		user-select: none;
+		font-size: 0.9rem;
+	}
+	.input-readonly {
+		opacity: 0.65;
+		cursor: not-allowed;
+		background: rgba(255, 255, 255, 0.03);
+	}
+	.section-label-eval {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+	.subtle-score {
+		font-size: 0.75rem;
+		font-family: 'JetBrains Mono', monospace;
+		color: rgba(255, 255, 255, 0.45);
+		font-weight: 400;
+		text-transform: none;
+		letter-spacing: normal;
+	}
+</style>
