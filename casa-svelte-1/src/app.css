@@ -504,3 +504,68 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 .form-bottom-errors li {
 	margin-bottom: 0.2rem;
 }
+
+/* Glassmorphism Accepted Accordion Style */
+.accepted-accordion {
+	background: rgba(22, 163, 74, 0.08);
+	border: 1px solid rgba(34, 197, 94, 0.35);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border-radius: 10px;
+	margin-bottom: 1.25rem;
+	padding: 0.85rem 1rem;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.accepted-summary {
+	cursor: pointer;
+	font-weight: 700;
+	color: #4ade80;
+	font-size: 0.85rem;
+	letter-spacing: 0.05em;
+	user-select: none;
+	outline: none;
+}
+
+/* Glassmorphism Archived Accordion Style */
+.archived-accordion {
+	background: rgba(248, 81, 73, 0.06);
+	border: 1px solid rgba(248, 81, 73, 0.25);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border-radius: 10px;
+	margin-top: 1.5rem;
+	margin-bottom: 1rem;
+	padding: 0.85rem 1rem;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.archived-summary {
+	cursor: pointer;
+	font-weight: 700;
+	color: #f85149;
+	font-size: 0.85rem;
+	letter-spacing: 0.05em;
+	user-select: none;
+	outline: none;
+}
+
+.accordion-content {
+	margin-top: 0.85rem;
+}
+
+/* Ensures pre tags wrap cleanly inside the error status bar */
+.status-text {
+	margin: 0;
+	font-family: 'JetBrains Mono', monospace;
+	font-size: 0.8rem;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.view-tab-icon {
+	flex: 0 0 38px;
+	width: 38px;
+	padding: 0;
+	justify-content: center;
+}

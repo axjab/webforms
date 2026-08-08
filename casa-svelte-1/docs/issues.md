@@ -1,30 +1,12 @@
 
 FAILED:
 
-- add issues to model
 
 - make issue a smaller button than entry and saved, and if possible replace the word Issues with a material icon symbolizing them.
 
 - material icons for heat, water, power, internet, laundry, parking
 
 - find a way to computed coordinates from URL
-
-Issue
------
-id : string
-description : string
-type : string(BUG, UPGRADE) 
-status : string(Open, Closed)
-priority : string(low, medium, high)
-
-/api/collections/casa_issues/records/RECORD_ID
-
-Token only required for update and delete, otherwise always accessible.
-
----
-[svelte] ownership_invalid_mutationMutating unbound props (`record`, at src/​lib/​components/​PropertyForm.svelte:34:3) is strongly discouraged. Consider using `bind:record={...}` in src/routes/+page.svelte (or using a callback) instead
----
-
 
 LOW-PRIORITY:
 
@@ -33,6 +15,7 @@ LOW-PRIORITY:
 
 OK: (keep for regression)
 
+- add issues to model
 - add base cost to detail view
 - make countdown more compact in Card view
 - move all rejected entries in "archived" accordion similar to accepted ones
@@ -60,3 +43,22 @@ OK: (keep for regression)
 - Make distance from ref read-only
 - Also, move tour_requested and and tour_date near the geo field
 - Move base cost to top of form near address, must be the first thing to input
+
+
+NOTES:
+
+Issue
+-----
+id : string
+description : string
+type : string(BUG, UPGRADE) 
+status : string(Open, Closed)
+priority : string(low, medium, high)
+
+/api/collections/casa_issues/records/RECORD_ID
+
+Token only required for update and delete, otherwise always accessible.
+
+---
+[svelte] ownership_invalid_mutationMutating unbound props (`record`, at src/​lib/​components/​PropertyForm.svelte:34:3) is strongly discouraged. Consider using `bind:record={...}` in src/routes/+page.svelte (or using a callback) instead
+---

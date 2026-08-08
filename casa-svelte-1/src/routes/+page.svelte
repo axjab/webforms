@@ -243,8 +243,17 @@
 	<button type="button" class="view-tab" class:active={view === 'list'} onclick={goToList}>
 		Saved <span class="tab-count mono">{totalItems ? `(${totalItems})` : ''}</span>
 	</button>
-	<button type="button" class="view-tab" class:active={view === 'issues'} onclick={() => (view = 'issues')}>
-		Issues
+	<button
+		type="button"
+		class="view-tab view-tab-icon"
+		class:active={view === 'issues'}
+		onclick={() => (view = 'issues')}
+		title="Issues & Bug Reports"
+		aria-label="Issues & Bug Reports"
+	>
+		<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+			<path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5c-.49 0-.96.06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z"/>
+		</svg>
 	</button>
 </div>
 
@@ -371,63 +380,3 @@
 </main>
 
 <DryRunPanel bind:open={dryRunOpen} title={dryRunTitle} payload={dryRunPayload} />
-
-<style>
-	/* Glassmorphism Accepted Accordion Style */
-	.accepted-accordion {
-		background: rgba(22, 163, 74, 0.08);
-		border: 1px solid rgba(34, 197, 94, 0.35);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border-radius: 10px;
-		margin-bottom: 1.25rem;
-		padding: 0.85rem 1rem;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-	}
-
-	.accepted-summary {
-		cursor: pointer;
-		font-weight: 700;
-		color: #4ade80;
-		font-size: 0.85rem;
-		letter-spacing: 0.05em;
-		user-select: none;
-		outline: none;
-	}
-
-	/* Glassmorphism Archived Accordion Style */
-	.archived-accordion {
-		background: rgba(248, 81, 73, 0.06);
-		border: 1px solid rgba(248, 81, 73, 0.25);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border-radius: 10px;
-		margin-top: 1.5rem;
-		margin-bottom: 1rem;
-		padding: 0.85rem 1rem;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-	}
-
-	.archived-summary {
-		cursor: pointer;
-		font-weight: 700;
-		color: #f85149;
-		font-size: 0.85rem;
-		letter-spacing: 0.05em;
-		user-select: none;
-		outline: none;
-	}
-
-	.accordion-content {
-		margin-top: 0.85rem;
-	}
-
-	/* Ensures pre tags wrap cleanly inside the error status bar */
-	.status-text {
-		margin: 0;
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 0.8rem;
-		white-space: pre-wrap;
-		word-break: break-word;
-	}
-</style>
