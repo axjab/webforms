@@ -1,19 +1,26 @@
 <script>
 	import { recordTotal } from '$lib/model.js';
-	import { formatMoney, formatDate, formatDateTime, formatCountdown } from '$lib/format.js';
+	import { formatMoney, formatDate, formatCountdown } from '$lib/format.js';
 
 	let { record, onView, onEdit, onDelete } = $props();
 
 	const total = $derived(recordTotal(record));
 	const isRejected = $derived(record.status === 'REJECTED' || record.status === 'REJECT');
 
-	// Comprehensive date and countdown calculation for SCHEDULED cards
-	const countdownInfo = $derived.by(() => {
-		if (record.status !== 'SCHEDULED') return null;
-		if (!record.tour_date) return { dateStr: 'No date set', remaining: null };
-		const dateStr = formatDateTime(record.tour_date);
-		const remaining = formatCountdown(record.tour_date);
-		return { dateStr, remaining };
+	// Extract individual countdown and date components without the year
+	const countdownParts = $derived.by(() => {
+		if (record.status !== 'SCHEDULED' || !record.tour_date) return null;
+		const normalized = typeof record.tour_date === 'string' ? record.tour_date.trim().replace(' ', 'T') : record.tour_date;
+		const d = new Date(normalized);
+		if (Number.isNaN(d.getTime())) return null;
+
+		return {
+			relative: formatCountdown(record.tour_date),
+			weekday: d.toLocaleDateString('en-US', { weekday: 'long' }), // e.g. Tuesday
+			day: d.getDate(),                                            // e.g. 12
+			month: d.toLocaleDateString('en-US', { month: 'short' }),    // e.g. Aug
+			time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) // e.g. 2:30 PM
+		};
 	});
 
 	// Strictly uses navigation_url only
@@ -52,12 +59,28 @@
 		<span class="property-card-status">{record.status}</span>
 	</div>
 
-	{#if record.status === 'SCHEDULED' && countdownInfo}
-		<div class="property-card-countdown-badge">
-			<span>⏳ Tour: {countdownInfo.dateStr}</span>
-			{#if countdownInfo.remaining}
-				<span class="countdown-time">({countdownInfo.remaining})</span>
+	{#if record.status === 'SCHEDULED' && countdownParts}
+		<div class="terminal-countdown-badge">
+			<span class="term-prefix">> TOUR</span>
+			
+			<!-- 1. RELATIVE TIME (Top Emphasis: Neon, boldest, largest) -->
+			{#if countdownParts.relative}
+				<span class="term-relative">{countdownParts.relative}</span>
 			{/if}
+
+			<span class="term-divider">|</span>
+
+			<!-- 2. DAY OF THE WEEK -->
+			<span class="term-weekday">{countdownParts.weekday}</span>
+
+			<!-- 3. DAY OF THE MONTH -->
+			<span class="term-day">{countdownParts.day}</span>
+
+			<!-- 4. MONTH -->
+			<span class="term-month">{countdownParts.month}</span>
+
+			<!-- Optional Time -->
+			<span class="term-time">@{countdownParts.time}</span>
 		</div>
 	{/if}
 
@@ -87,9 +110,9 @@
 <style>
 	/* --- Status Styles --- */
 	.property-card.scheduled {
-		border-left: 4px solid #2563eb;
-		background-color: rgba(37, 99, 235, 0.04);
-		box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+		border-left: 4px solid #00f0ff;
+		background-color: rgba(0, 240, 255, 0.02);
+		box-shadow: 0 4px 16px rgba(0, 240, 255, 0.08);
 	}
 
 	.property-card.accepted {
@@ -106,25 +129,70 @@
 		text-decoration: none;
 	}
 
-	/* --- Countdown Badge --- */
-	.property-card-countdown-badge {
+	/* --- Terminal/Neon Countdown Badge --- */
+	.terminal-countdown-badge {
 		display: inline-flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.35rem;
-		background-color: #2563eb;
-		color: #ffffff;
-		font-weight: 600;
-		font-size: 0.8rem;
-		padding: 0.3rem 0.65rem;
-		border-radius: 8px;
-		margin: 0.4rem 0;
-		width: fit-content;
+		gap: 0.45rem;
+		font-family: 'JetBrains Mono', monospace, monospace;
+		background: rgba(10, 15, 26, 0.75);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		border: 1px solid rgba(0, 240, 255, 0.3);
+		border-radius: 6px;
+		padding: 0.35rem 0.75rem;
+		margin: 0.5rem 0;
+		box-shadow: 0 0 10px rgba(0, 240, 255, 0.15), inset 0 0 10px rgba(0, 240, 255, 0.05);
+		letter-spacing: 0.02em;
 	}
 
-	.countdown-time {
-		opacity: 0.9;
+	.term-prefix {
+		color: #38bdf8;
+		font-size: 0.7rem;
+		font-weight: 700;
+		opacity: 0.8;
+	}
+
+	/* 1. RELATIVE TIME: Maximum Neon Emphasis */
+	.term-relative {
+		color: #00f0ff;
+		font-weight: 800;
+		font-size: 0.95rem;
+		text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+		text-transform: uppercase;
+	}
+
+	.term-divider {
+		color: rgba(255, 255, 255, 0.2);
+		font-size: 0.8rem;
+	}
+
+	/* 2. DAY OF THE WEEK */
+	.term-weekday {
+		color: #e2e8f0;
+		font-weight: 600;
+		font-size: 0.85rem;
+	}
+
+	/* 3. DAY OF THE MONTH */
+	.term-day {
+		color: #cbd5e1;
+		font-weight: 500;
+		font-size: 0.8rem;
+	}
+
+	/* 4. MONTH */
+	.term-month {
+		color: #94a3b8;
 		font-weight: 400;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+	}
+
+	.term-time {
+		color: #64748b;
+		font-size: 0.72rem;
 	}
 
 	/* --- GO Button --- */

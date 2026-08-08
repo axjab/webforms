@@ -4,8 +4,7 @@
 	import { formatMoney } from '$lib/format.js';
 
 	// `record` is a Svelte 5 $state object owned by the parent page — we mutate
-	// its fields directly and the parent sees the changes immediately, no
-	// event dispatching needed.
+	// its fields directly and the parent sees the changes immediately.
 	let { record, editingId = null, submitLabel = 'Save property', onSubmit, onCancel } = $props();
 
 	const total = $derived(recordTotal(record));
@@ -13,17 +12,38 @@
 		const coords = parseCoordinates(record.coordinates_input);
 		return coords ? distanceFromRef(coords) : undefined;
 	});
+
+	// Derive live status based on verdict and tour date
 	const liveStatus = $derived(computeStatus(record.verdict, record.tour_date));
+
+	// Keep record.status in sync with liveStatus whenever liveStatus changes,
+	// or fall back to whatever status is set on record
+	$effect(() => {
+		if (liveStatus) {
+			record.status = liveStatus;
+		}
+	});
+
+	// Automatically check tour_requested if tour_date is provided
+	$effect(() => {
+		if (record.tour_date) {
+			record.tour_requested = true;
+		}
+	});
 
 	function toggleChip(field) {
 		record[field] = !record[field];
 	}
 
 	function addCostOtherRow() {
+		if (!Array.isArray(record.cost_other)) {
+			record.cost_other = [];
+		}
 		record.cost_other = [...record.cost_other, { label: '', amount: '' }];
 	}
 
 	function removeCostOtherRow(index) {
+		if (!Array.isArray(record.cost_other)) return;
 		record.cost_other = record.cost_other.filter((_, i) => i !== index);
 	}
 </script>
@@ -58,9 +78,9 @@
 	</section>
 	<div class="divider"></div>
 
-	<!-- LOCATION ─────────────────────────────────────── -->
-		<section class="section">
-		<div class="section-label">Location</div>
+	<!-- LOCATION & TOUR ──────────────────────────────── -->
+	<section class="section">
+		<div class="section-label">Location & Tour</div>
 		<div class="field">
 			<label class="field-label" for="navigation_url">Navigation URL</label>
 			<input
@@ -92,7 +112,7 @@
 		</div>
 		<div class="grid-2">
 			<div class="field">
-				<label class="field-label" for="tour_date">Tour date</label>
+				<label class="field-label" for="tour_date">Tour date & time</label>
 				<input type="datetime-local" id="tour_date" bind:value={record.tour_date} />
 			</div>
 			<div class="field">
@@ -103,7 +123,7 @@
 				</label>
 			</div>
 		</div>
-		</section>
+	</section>
 	<div class="divider"></div>
 
 	<!-- UNIT ─────────────────────────────────────────── -->
@@ -176,7 +196,7 @@
 
 		<div class="cost-other">
 			<div class="field-label">Other expenses</div>
-			{#each record.cost_other as row, i}
+			{#each record.cost_other || [] as row, i}
 				<div class="cost-other-row">
 					<input type="text" placeholder="label (e.g. storage)" bind:value={row.label} />
 					<input type="number" placeholder="0" bind:value={row.amount} />
@@ -200,6 +220,15 @@
 		<div class="section-label">Evaluation</div>
 		<div class="grid-2">
 			<div class="field">
+				<label class="field-label" for="status">Status</label>
+				<select id="status" bind:value={record.status}>
+					<option value="QUEUED">QUEUED</option>
+					<option value="SCHEDULED">SCHEDULED</option>
+					<option value="ACCEPTED">ACCEPTED</option>
+					<option value="REJECTED">REJECTED</option>
+				</select>
+			</div>
+			<div class="field">
 				<label class="field-label" for="verdict">Verdict</label>
 				<select id="verdict" bind:value={record.verdict}>
 					<option value="UNDECIDED">Undecided</option>
@@ -207,10 +236,6 @@
 					<option value="NO">No</option>
 					<option value="MAYBE">Maybe</option>
 				</select>
-			</div>
-			<div class="field">
-				<label class="field-label" for="status_derived">Status (derived)</label>
-				<input type="text" id="status_derived" value={liveStatus} disabled />
 			</div>
 		</div>
 		<div class="grid-2">
