@@ -1,13 +1,16 @@
 <script>
 	import { recordTotal } from '$lib/model.js';
-	import { formatMoney, formatDate, formatCountdown } from '$lib/format.js';
+	import { formatMoney, formatDate, formatDateTime, formatCountdown, linkifyContact } from '$lib/format.js';
 
-	let { record, onView, onEdit, onDelete } = $props();
+	let { record, onEdit, onDelete } = $props();
+
+	// Local expansion state for inline detail toggling
+	let isExpanded = $state(false);
 
 	const total = $derived(recordTotal(record));
 	const isRejected = $derived(record.status === 'REJECTED' || record.status === 'REJECT');
 
-	// Extract individual countdown and date components without the year
+	// Extract countdown and date components
 	const countdownParts = $derived.by(() => {
 		if (record.status !== 'SCHEDULED' || !record.tour_date) return null;
 		const normalized = typeof record.tour_date === 'string' ? record.tour_date.trim().replace(' ', 'T') : record.tour_date;
@@ -16,14 +19,14 @@
 
 		return {
 			relative: formatCountdown(record.tour_date),
-			weekday: d.toLocaleDateString('en-US', { weekday: 'long' }), // e.g. Tuesday
-			day: d.getDate(),                                            // e.g. 12
-			month: d.toLocaleDateString('en-US', { month: 'short' }),    // e.g. Aug
-			time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) // e.g. 2:30 PM
+			weekday: d.toLocaleDateString('en-US', { weekday: 'long' }),
+			day: d.getDate(),
+			month: d.toLocaleDateString('en-US', { month: 'short' }),
+			time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 		};
 	});
 
-	// Strictly uses navigation_url only
+	// Navigation URL format
 	const goUrl = $derived.by(() => {
 		if (!record.navigation_url) return null;
 		const raw = record.navigation_url.trim();
@@ -39,6 +42,10 @@
 		['has_pool', 'Pool'],
 		['is_furnished', 'Furnished']
 	];
+
+	function toggleExpand() {
+		isExpanded = !isExpanded;
+	}
 </script>
 
 <div
@@ -47,11 +54,13 @@
 	class:queued={record.status === 'QUEUED'}
 	class:accepted={record.status === 'ACCEPTED'}
 	class:rejected={isRejected}
+	class:expanded={isExpanded}
 >
-	<div class="property-card-header">
+	<div class="property-card-header" onclick={toggleExpand} role="button" tabindex="0">
 		<span class="property-card-address">{record.address || 'Untitled'}</span>
 		<span class="property-card-score">Score {record.score ?? '—'}</span>
 	</div>
+
 	<div class="property-card-meta">
 		<span class="mono">{formatMoney(total)}/mo</span>
 		<span>Rating {record.nabila_rating ?? '—'}/10</span>
@@ -63,23 +72,14 @@
 		<div class="terminal-countdown-badge">
 			<span class="term-prefix">> TOUR</span>
 			
-			<!-- 1. RELATIVE TIME (Top Emphasis: Neon, boldest, largest) -->
 			{#if countdownParts.relative}
 				<span class="term-relative">{countdownParts.relative}</span>
 			{/if}
 
 			<span class="term-divider">|</span>
-
-			<!-- 2. DAY OF THE WEEK -->
 			<span class="term-weekday">{countdownParts.weekday}</span>
-
-			<!-- 3. DAY OF THE MONTH -->
 			<span class="term-day">{countdownParts.day}</span>
-
-			<!-- 4. MONTH -->
 			<span class="term-month">{countdownParts.month}</span>
-
-			<!-- Optional Time -->
 			<span class="term-time">@{countdownParts.time}</span>
 		</div>
 	{/if}
@@ -93,8 +93,74 @@
 			{/each}
 		</div>
 	{/if}
+
+	<!-- INLINE EXPANDED DETAILS -->
+	{#if isExpanded}
+		<div class="property-card-expanded">
+			<dl class="detail-grid">
+				<dt>Status</dt>
+				<dd>{record.status}</dd>
+
+				<dt>Verdict</dt>
+				<dd>{record.verdict ?? '—'}</dd>
+
+				<dt>URL</dt>
+				<dd>
+					{#if record.url}
+						<a href={record.url} target="_blank" rel="noopener">Listing Link</a>
+					{:else}
+						—
+					{/if}
+				</dd>
+
+				<dt>Contact</dt>
+				<dd>{@html linkifyContact(record.contact) || '—'}</dd>
+
+				<dt>Coordinates</dt>
+				<dd>{record.coordinates ? `${record.coordinates.lat}, ${record.coordinates.lon}` : '—'}</dd>
+
+				<dt>Distance from ref</dt>
+				<dd>{record.distance_from_ref ?? '—'} km</dd>
+
+				<dt>Tour requested</dt>
+				<dd>{record.tour_requested ? 'Yes' : 'No'}</dd>
+
+				<dt>Tour date</dt>
+				<dd>{formatDateTime(record.tour_date)}</dd>
+
+				<dt>Move-in</dt>
+				<dd>{formatDate(record.move_in)}</dd>
+
+				<dt>Laundry</dt>
+				<dd>{record.laundry_type ?? '—'}</dd>
+
+				<dt>Monthly total</dt>
+				<dd class="mono">{formatMoney(total)}</dd>
+
+				<dt>Nabila's rating</dt>
+				<dd>{record.nabila_rating ?? '—'}/10</dd>
+
+				<dt>Score</dt>
+				<dd>{record.score ?? '—'}</dd>
+			</dl>
+
+			{#if record.reviews}
+				<details class="field-expandable">
+					<summary>Reviews</summary>
+					<p>{record.reviews}</p>
+				</details>
+			{/if}
+
+			{#if record.notes}
+				<div class="detail-notes">{@html record.notes}</div>
+			{/if}
+		</div>
+	{/if}
+
 	<div class="property-card-actions">
-		<button type="button" class="btn-card-action" onclick={() => onView(record.id)}>View</button>
+		<button type="button" class="btn-card-action" onclick={toggleExpand}>
+			{isExpanded ? 'Collapse ▲' : 'View ▼'}
+		</button>
 		<button type="button" class="btn-card-action" onclick={() => onEdit(record.id)}>Edit</button>
 		{#if goUrl}
 			<a class="btn-card-action btn-card-go" href={goUrl} target="_blank" rel="noopener">
@@ -108,6 +174,11 @@
 </div>
 
 <style>
+	.property-card-header {
+		cursor: pointer;
+		user-select: none;
+	}
+
 	/* --- Status Styles --- */
 	.property-card.scheduled {
 		border-left: 4px solid #00f0ff;
@@ -135,7 +206,7 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 0.45rem;
-		font-family: 'JetBrains Mono', monospace, monospace;
+		font-family: 'JetBrains Mono', monospace;
 		background: rgba(10, 15, 26, 0.75);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
@@ -154,7 +225,6 @@
 		opacity: 0.8;
 	}
 
-	/* 1. RELATIVE TIME: Maximum Neon Emphasis */
 	.term-relative {
 		color: #00f0ff;
 		font-weight: 800;
@@ -168,21 +238,18 @@
 		font-size: 0.8rem;
 	}
 
-	/* 2. DAY OF THE WEEK */
 	.term-weekday {
 		color: #e2e8f0;
 		font-weight: 600;
 		font-size: 0.85rem;
 	}
 
-	/* 3. DAY OF THE MONTH */
 	.term-day {
 		color: #cbd5e1;
 		font-weight: 500;
 		font-size: 0.8rem;
 	}
 
-	/* 4. MONTH */
 	.term-month {
 		color: #94a3b8;
 		font-weight: 400;
@@ -193,6 +260,38 @@
 	.term-time {
 		color: #64748b;
 		font-size: 0.72rem;
+	}
+
+	/* --- Expanded Details Section --- */
+	.property-card-expanded {
+		margin-top: 0.75rem;
+		padding-top: 0.75rem;
+		border-top: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.detail-grid {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 0.4rem 1rem;
+		font-size: 0.85rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.detail-grid dt {
+		font-weight: 600;
+		opacity: 0.7;
+	}
+
+	.detail-grid dd {
+		margin: 0;
+	}
+
+	.detail-notes {
+		margin-top: 0.5rem;
+		padding: 0.5rem;
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 4px;
+		font-size: 0.85rem;
 	}
 
 	/* --- GO Button --- */

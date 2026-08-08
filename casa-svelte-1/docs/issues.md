@@ -1,8 +1,6 @@
 
 FAILED:
 
-- Tour date cleared when opening edit view
-- Show a countdown to tour date in the card list/queue view
 - detail view, expand card, no second page
 - prompt user, phone or mailto
 
@@ -14,6 +12,8 @@ LOW-PRIORITY:
 
 OK:
 
+- Show a countdown to tour date in the card list/queue view (style is called glassmorphism)
+- Tour date persisted
 - Add a GO button in the cards which opens the navigation_url link
 - Sorted cards order: SCHEDULED --> QUEUED --> ACCEPTED --> REJECTED
 - REJECT --> crossed out, dimmed out, move to bottom
