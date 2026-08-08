@@ -4,13 +4,13 @@ FAILED:
 - fix style of card list, accordion regressed
 - move all rejected entries in "archived" accordion similar to accepted ones
 - make countdown more compact in Card view
+- add base cost to detail view
 
 - add issues to model
 
-- add base cost to detail view
+- material icons for heat, water, power, internet, laundry, parking
 
 - find a way to computed coordinates from URL
-- material icons for heat, water, power, internet, laundry, parking
 
 Issue
 -----

@@ -32,23 +32,24 @@
 
 	const DRAFT_STORAGE_KEY = 'casa_property_form_draft';
 
-	// Status priority map for sorting non-accepted cards
+	// Status priority map for sorting active cards
 	const statusPriority = {
 		SCHEDULED: 1,
-		QUEUED: 2,
-		REJECT: 3,
-		REJECTED: 3
+		QUEUED: 2
 	};
 
 	const viewingRecord = $derived(records.find((r) => r.id === viewingId));
 
-	// Filter accepted listings for the pinned accordion
+	// Filter accepted listings for top accordion
 	const acceptedRecords = $derived(records.filter((r) => r.status === 'ACCEPTED'));
 
-	// Main list excludes ACCEPTED and sorts by priority (SCHEDULED -> QUEUED -> REJECT)
+	// Filter archived listings for bottom accordion
+	const archivedRecords = $derived(records.filter((r) => r.status === 'REJECT' || r.status === 'REJECTED'));
+
+	// Main list excludes ACCEPTED and REJECTED, and sorts by priority (SCHEDULED -> QUEUED)
 	const mainSortedRecords = $derived(
 		records
-			.filter((r) => r.status !== 'ACCEPTED')
+			.filter((r) => r.status !== 'ACCEPTED' && r.status !== 'REJECT' && r.status !== 'REJECTED')
 			.sort((a, b) => {
 				const priorityA = statusPriority[a.status] ?? 99;
 				const priorityB = statusPriority[b.status] ?? 99;
@@ -310,7 +311,7 @@
 					<span class="empty-state-text">Properties you save will show up here, most recent first.</span>
 				</div>
 			{:else}
-				<!-- ACCORDION FOR ACCEPTED LISTINGS -->
+				<!-- ACCORDION FOR ACCEPTED LISTINGS (TOP) -->
 				{#if acceptedRecords.length > 0}
 					<details class="accepted-accordion">
 						<summary class="accepted-summary">
@@ -329,7 +330,7 @@
 					</details>
 				{/if}
 
-				<!-- MAIN SORTED LIST: SCHEDULED -> QUEUED -> REJECT -->
+				<!-- MAIN ACTIVE LIST -->
 				<div class="property-cards">
 					{#each mainSortedRecords as record (record.id)}
 						<PropertyCard
@@ -340,6 +341,25 @@
 						/>
 					{/each}
 				</div>
+
+				<!-- ACCORDION FOR ARCHIVED / REJECTED LISTINGS (BOTTOM) -->
+				{#if archivedRecords.length > 0}
+					<details class="archived-accordion">
+						<summary class="archived-summary">
+							<span>ARCHIVED / REJECTED ({archivedRecords.length})</span>
+						</summary>
+						<div class="property-cards accordion-content">
+							{#each archivedRecords as record (record.id)}
+								<PropertyCard
+									{record}
+									onView={viewRecord}
+									onEdit={editRecordById}
+									onDelete={deleteRecordHandler}
+								/>
+							{/each}
+						</div>
+					</details>
+				{/if}
 			{/if}
 		</div>
 	{:else if view === 'detail' && viewingRecord}
@@ -348,3 +368,63 @@
 </main>
 
 <DryRunPanel bind:open={dryRunOpen} title={dryRunTitle} payload={dryRunPayload} />
+
+<style>
+	/* Glassmorphism Accepted Accordion Style */
+	.accepted-accordion {
+		background: rgba(22, 163, 74, 0.08);
+		border: 1px solid rgba(34, 197, 94, 0.35);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border-radius: 10px;
+		margin-bottom: 1.25rem;
+		padding: 0.85rem 1rem;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+	}
+
+	.accepted-summary {
+		cursor: pointer;
+		font-weight: 700;
+		color: #4ade80;
+		font-size: 0.85rem;
+		letter-spacing: 0.05em;
+		user-select: none;
+		outline: none;
+	}
+
+	/* Glassmorphism Archived Accordion Style */
+	.archived-accordion {
+		background: rgba(248, 81, 73, 0.06);
+		border: 1px solid rgba(248, 81, 73, 0.25);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border-radius: 10px;
+		margin-top: 1.5rem;
+		margin-bottom: 1rem;
+		padding: 0.85rem 1rem;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+	}
+
+	.archived-summary {
+		cursor: pointer;
+		font-weight: 700;
+		color: #f85149;
+		font-size: 0.85rem;
+		letter-spacing: 0.05em;
+		user-select: none;
+		outline: none;
+	}
+
+	.accordion-content {
+		margin-top: 0.85rem;
+	}
+
+	/* Ensures pre tags wrap cleanly inside the error status bar */
+	.status-text {
+		margin: 0;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.8rem;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+</style>

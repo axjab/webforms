@@ -19,7 +19,7 @@
 
 		return {
 			relative: formatCountdown(record.tour_date),
-			weekday: d.toLocaleDateString('en-US', { weekday: 'long' }),
+			weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
 			day: d.getDate(),
 			month: d.toLocaleDateString('en-US', { month: 'short' }),
 			time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -62,7 +62,12 @@
 	</div>
 
 	<div class="property-card-meta">
-		<span class="mono">{formatMoney(total)}/mo</span>
+		<span class="mono">
+			{#if record.cost_base != null && record.cost_base !== ''}
+				{formatMoney(record.cost_base)} base /
+			{/if}
+			{formatMoney(total)} total
+		</span>
 		<span>{formatDate(record.created)}</span>
 		<span class="property-card-status">{record.status}</span>
 	</div>
@@ -103,6 +108,12 @@
 				<dt>Verdict</dt>
 				<dd>{record.verdict ?? '—'}</dd>
 
+				<dt>Base cost</dt>
+				<dd class="mono">{record.cost_base != null && record.cost_base !== '' ? formatMoney(record.cost_base) : '—'}</dd>
+
+				<dt>Monthly total</dt>
+				<dd class="mono">{formatMoney(total)}</dd>
+
 				<dt>URL</dt>
 				<dd>
 					{#if record.url}
@@ -132,9 +143,6 @@
 
 				<dt>Laundry</dt>
 				<dd>{record.laundry_type ?? '—'}</dd>
-
-				<dt>Monthly total</dt>
-				<dd class="mono">{formatMoney(total)}</dd>
 
 				<dt>Score</dt>
 				<dd>{record.score ?? '—'}</dd>
@@ -188,74 +196,73 @@
 	}
 
 	.property-card.rejected {
-		opacity: 0.5;
+		opacity: 0.55;
+	}
+
+	.property-card.rejected .property-card-address {
 		text-decoration: line-through;
 	}
 
-	.property-card.rejected .property-card-actions {
-		text-decoration: none;
-	}
-
-	/* --- Terminal/Neon Countdown Badge --- */
+	/* --- Compact Terminal/Neon Countdown Badge --- */
 	.terminal-countdown-badge {
 		display: inline-flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.45rem;
+		gap: 0.3rem;
 		font-family: 'JetBrains Mono', monospace;
-		background: rgba(10, 15, 26, 0.75);
+		background: rgba(10, 15, 26, 0.65);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
 		border: 1px solid rgba(0, 240, 255, 0.3);
-		border-radius: 6px;
-		padding: 0.35rem 0.75rem;
-		margin: 0.5rem 0;
-		box-shadow: 0 0 10px rgba(0, 240, 255, 0.15), inset 0 0 10px rgba(0, 240, 255, 0.05);
-		letter-spacing: 0.02em;
+		border-radius: 5px;
+		padding: 0.2rem 0.5rem;
+		margin: 0.25rem 0;
+		box-shadow: 0 0 8px rgba(0, 240, 255, 0.12), inset 0 0 6px rgba(0, 240, 255, 0.04);
+		letter-spacing: 0.01em;
 	}
 
 	.term-prefix {
 		color: #38bdf8;
-		font-size: 0.7rem;
+		font-size: 0.62rem;
 		font-weight: 700;
-		opacity: 0.8;
+		opacity: 0.85;
 	}
 
 	.term-relative {
 		color: #00f0ff;
 		font-weight: 800;
-		font-size: 0.95rem;
-		text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+		font-size: 0.78rem;
+		text-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
 		text-transform: uppercase;
 	}
 
 	.term-divider {
 		color: rgba(255, 255, 255, 0.2);
-		font-size: 0.8rem;
+		font-size: 0.68rem;
 	}
 
 	.term-weekday {
 		color: #e2e8f0;
 		font-weight: 600;
-		font-size: 0.85rem;
+		font-size: 0.72rem;
 	}
 
 	.term-day {
 		color: #cbd5e1;
 		font-weight: 500;
-		font-size: 0.8rem;
+		font-size: 0.72rem;
 	}
 
 	.term-month {
 		color: #94a3b8;
 		font-weight: 400;
-		font-size: 0.75rem;
+		font-size: 0.68rem;
 		text-transform: uppercase;
 	}
 
 	.term-time {
 		color: #64748b;
-		font-size: 0.72rem;
+		font-size: 0.68rem;
 	}
 
 	/* --- Expanded Details Section --- */
