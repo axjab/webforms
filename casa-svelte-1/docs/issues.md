@@ -1,7 +1,8 @@
 
 FAILED:
 
-- find a way to computed coordinates from URL
+- coordinates from address?
+- accordion issues
 
 LOW-PRIORITY (open):
 
@@ -11,6 +12,7 @@ LOW-PRIORITY (open):
 
 Closed: (keep for regression)
 
+- find a way to computed coordinates from URL
 - set up backup for Pocketbase (set up garage s3 for Pocketbase)
 - material icons for heat, water, power, internet, laundry, parking
 - make issue a smaller button than entry and saved, and if possible replace the word Issues with a material icon symbolizing them.

@@ -10,6 +10,13 @@
 	let formError = $state(null);
 	let formSuccess = $state(null);
 
+	// Accordion state (collapsed by default)
+	let isClosedExpanded = $state(false);
+
+	// Derived issues split
+	let openIssues = $derived(issues.filter((i) => i.status === 'Open'));
+	let closedIssues = $derived(issues.filter((i) => i.status === 'Closed'));
+
 	// Form state
 	let desc = $state('');
 	let type = $state('BUG'); // BUG | UPGRADE
@@ -96,6 +103,40 @@
 	}
 </script>
 
+{#snippet issueCard(issue)}
+	<div class="issue-card" class:closed={issue.status === 'Closed'}>
+		<div class="issue-header">
+			<div class="issue-badges">
+				<span class="badge type-{issue.type.toLowerCase()}">{issue.type}</span>
+				<span class="badge priority-{issue.priority}">{issue.priority}</span>
+				<span class="badge status-{issue.status.toLowerCase()}">{issue.status}</span>
+			</div>
+			<span class="issue-date mono">{formatDate(issue.created)}</span>
+		</div>
+
+		<p class="issue-desc">{issue.desc}</p>
+
+		<div class="issue-actions">
+			{#if auth.token}
+				<button
+					type="button"
+					class="btn-action-small"
+					onclick={() => toggleStatus(issue)}
+				>
+					Mark as {issue.status === 'Open' ? 'Closed' : 'Open'}
+				</button>
+				<button
+					type="button"
+					class="btn-action-small delete"
+					onclick={() => handleDelete(issue.id)}
+				>
+					Delete
+				</button>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
 <div class="issues-container">
 	<!-- REPORT FORM -->
 	<div class="issue-form-card">
@@ -147,7 +188,7 @@
 	<!-- ISSUES LIST -->
 	<div class="issues-list-section">
 		<div class="list-header">
-			<h3 class="section-title">Logged Issues ({issues.length})</h3>
+			<h3 class="section-title">Open Issues ({openIssues.length})</h3>
 			<button type="button" class="btn-refresh" onclick={loadIssues}>Refresh</button>
 		</div>
 
@@ -158,41 +199,38 @@
 		{:else if issues.length === 0}
 			<div class="empty-state">No issues logged yet.</div>
 		{:else}
-			<div class="issues-list">
-				{#each issues as issue (issue.id)}
-					<div class="issue-card" class:closed={issue.status === 'Closed'}>
-						<div class="issue-header">
-							<div class="issue-badges">
-								<span class="badge type-{issue.type.toLowerCase()}">{issue.type}</span>
-								<span class="badge priority-{issue.priority}">{issue.priority}</span>
-								<span class="badge status-{issue.status.toLowerCase()}">{issue.status}</span>
-							</div>
-							<span class="issue-date mono">{formatDate(issue.created)}</span>
-						</div>
+			<!-- OPEN ISSUES -->
+			{#if openIssues.length === 0}
+				<div class="empty-state">No open issues right now!</div>
+			{:else}
+				<div class="issues-list">
+					{#each openIssues as issue (issue.id)}
+						{@render issueCard(issue)}
+					{/each}
+				</div>
+			{/if}
 
-						<p class="issue-desc">{issue.desc}</p>
+			<!-- CLOSED ISSUES ACCORDION -->
+			{#if closedIssues.length > 0}
+				<div class="accordion-section">
+					<button
+						type="button"
+						class="accordion-toggle"
+						onclick={() => (isClosedExpanded = !isClosedExpanded)}
+					>
+						<span>Closed Issues ({closedIssues.length})</span>
+						<span class="chevron" class:expanded={isClosedExpanded}>▼</span>
+					</button>
 
-						<div class="issue-actions">
-							{#if auth.token}
-								<button
-									type="button"
-									class="btn-action-small"
-									onclick={() => toggleStatus(issue)}
-								>
-									Mark as {issue.status === 'Open' ? 'Closed' : 'Open'}
-								</button>
-								<button
-									type="button"
-									class="btn-action-small delete"
-									onclick={() => handleDelete(issue.id)}
-								>
-									Delete
-								</button>
-							{/if}
+					{#if isClosedExpanded}
+						<div class="issues-list accordion-content">
+							{#each closedIssues as issue (issue.id)}
+								{@render issueCard(issue)}
+							{/each}
 						</div>
-					</div>
-				{/each}
-			</div>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>
@@ -361,5 +399,52 @@
 	.btn-action-small.delete:hover {
 		color: var(--red);
 		border-color: var(--red);
+	}
+
+	/* ACCORDION STYLES */
+	.accordion-section {
+		margin-top: 16px;
+		border-top: 1px solid var(--border);
+		padding-top: 12px;
+	}
+
+	.accordion-toggle {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		background: transparent;
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 8px 12px;
+		color: var(--muted);
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+
+	.accordion-toggle:hover {
+		background: var(--surface);
+		color: var(--text);
+	}
+
+	.chevron {
+		font-size: 10px;
+		transition: transform 0.2s ease;
+	}
+
+	.chevron.expanded {
+		transform: rotate(180deg);
+	}
+
+	.accordion-content {
+		margin-top: 10px;
+	}
+
+	.empty-state {
+		font-size: 12px;
+		color: var(--muted);
+		padding: 12px 0;
 	}
 </style>
