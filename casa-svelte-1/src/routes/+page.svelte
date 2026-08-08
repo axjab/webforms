@@ -278,7 +278,7 @@
 			</div>
 		{/if}
 		<PropertyForm
-			record={formRecord}
+			bind:record={formRecord}
 			{editingId}
 			{submitLabel}
 			onSubmit={submitForm}

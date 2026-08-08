@@ -1,11 +1,7 @@
 
 FAILED:
 
-- warning
-- icon
 - find a way to computed coordinates from URL
-- back up db
-- auto backup db
 
 LOW-PRIORITY (open):
 
@@ -15,6 +11,7 @@ LOW-PRIORITY (open):
 
 Closed: (keep for regression)
 
+- set up backup for Pocketbase (set up garage s3 for Pocketbase)
 - material icons for heat, water, power, internet, laundry, parking
 - make issue a smaller button than entry and saved, and if possible replace the word Issues with a material icon symbolizing them.
 - add issues to model
