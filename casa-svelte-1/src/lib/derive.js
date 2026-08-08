@@ -1,6 +1,35 @@
 // Hardcoded reference point for distance_from_ref (see SPEC.md, task 7).
 const REF = { lat: 45.29803797253851, lon: -75.91102934582861 };
 
+/**
+ * Extracts "lat,lon" string from various map URL formats (Google Maps, Apple Maps, OpenStreetMap, HERE WeGo).
+ * @param {string} url
+ * @returns {string|null} - e.g. "45.4231,-75.6892" or null if unparseable
+ */
+export function extractCoordsFromUrl(url) {
+	if (!url || typeof url !== 'string') return null;
+	const trimmed = url.trim();
+	if (!trimmed) return null;
+
+	// Google Maps @lat,lon
+	const googleAtMatch = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+	if (googleAtMatch) return `${googleAtMatch[1]},${googleAtMatch[2]}`;
+
+	// OpenStreetMap /#map=zoom/lat/lon
+	const osmMatch = trimmed.match(/#map=\d+\/(-?\d+\.\d+)\/(-?\d+\.\d+)/);
+	if (osmMatch) return `${osmMatch[1]},${osmMatch[2]}`;
+
+	// HERE WeGo explicit parameters (e.g., map=lat,lon or Location:lat,lon or s-lat,lon)
+	const hereMatch = trimmed.match(/(?:map=|Location:|=|s-|r\/)(-?\d+\.\d+)%2C(-?\d+\.\d+)/i);
+	if (hereMatch) return `${hereMatch[1]},${hereMatch[2]}`;
+
+	// Generic query parameter / path lat,lon pattern (works for Apple Maps ?ll= / ?q= and standard coords)
+	const genericMatch = trimmed.match(/(-?\d+\.\d+)[\s,]+(-?\d+\.\d+)/);
+	if (genericMatch) return `${genericMatch[1]},${genericMatch[2]}`;
+
+	return null;
+}
+
 // "45.4231,-75.6892" -> { lat, lon }, or null if it doesn't parse.
 export function parseCoordinates(str) {
 	if (!str) return null;

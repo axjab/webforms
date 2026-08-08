@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { emptyRecord, recordTotal } from '$lib/model.js';
-	import { computeStatus, parseCoordinates, distanceFromRef } from '$lib/derive.js';
+	import { computeStatus, parseCoordinates, distanceFromRef, extractCoordsFromUrl } from '$lib/derive.js';
 	import { formatMoney } from '$lib/format.js';
 	import { validateUrl, validateTourDate, validateRecord, validateNavigationUrl } from '$lib/validation.js';
 
@@ -60,6 +60,22 @@
 	const liveDistance = $derived.by(() => {
 		const coords = parseCoordinates(record.coordinates_input);
 		return coords ? distanceFromRef(coords) : undefined;
+	});
+
+	// Live coordinate extraction derivation
+	const extractedCoords = $derived.by(() => extractCoordsFromUrl(record.navigation_url));
+
+	// Show warning if navigation_url is non-empty, URL syntax is valid, but coords couldn't be parsed
+	const showUnparseableNotice = $derived.by(() => {
+		const hasUrl = Boolean(record.navigation_url && record.navigation_url.trim());
+		return hasUrl && navigationUrlValidation.valid && !extractedCoords;
+	});
+
+	// Automatically update coordinates_input whenever navigation_url produces valid coordinates
+	$effect(() => {
+		if (extractedCoords) {
+			record.coordinates_input = extractedCoords;
+		}
 	});
 
 	// Live validation state derivations
@@ -190,19 +206,24 @@
 	<!-- LOCATION & TOUR ──────────────────────────────── -->
 	<section class="section">
 		<div class="section-label">Location & Tour</div>
-		<div class="field">
-			<label class="field-label" for="navigation_url">Navigation URL</label>
-			<input
-				type="text"
-				id="navigation_url"
-				placeholder="https://maps.example.com/…"
-				bind:value={record.navigation_url}
-				class:input-error={!navigationUrlValidation.valid}
-			/>
-			{#if !navigationUrlValidation.valid}
-				<div class="error-msg">{navigationUrlValidation.message}</div>
-			{/if}
-		</div>
+	<div class="field">
+		<label class="field-label" for="navigation_url">Navigation URL</label>
+		<input
+			type="text"
+			id="navigation_url"
+			placeholder="https://maps.example.com/…"
+			bind:value={record.navigation_url}
+			class:input-error={!navigationUrlValidation.valid}
+		/>
+		{#if !navigationUrlValidation.valid}
+			<div class="error-msg">{navigationUrlValidation.message}</div>
+		{:else if showUnparseableNotice}
+			<div class="unparseable-hint">
+				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+				Could not auto-extract coordinates from link
+			</div>
+		{/if}
+	</div>
 		<div class="grid-2">
 			<div class="field">
 				<label class="field-label" for="coordinates">Location (lat,lon)</label>
@@ -622,5 +643,22 @@
 	color: var(--red);
 	background: rgba(248, 81, 73, 0.1);
 }
+
+/* Tiny non-distracting hint for unparseable URLs */
+	.unparseable-hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 11px;
+		color: var(--muted);
+		margin-top: 4px;
+		opacity: 0.75;
+	}
+
+	.unparseable-hint svg {
+		width: 12px;
+		height: 12px;
+		flex-shrink: 0;
+	}
 
 </style>
