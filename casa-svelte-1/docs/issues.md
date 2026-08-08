@@ -1,20 +1,22 @@
 
 FAILED:
 
-
-- make issue a smaller button than entry and saved, and if possible replace the word Issues with a material icon symbolizing them.
-
-- material icons for heat, water, power, internet, laundry, parking
-
+- warning
+- icon
 - find a way to computed coordinates from URL
+- back up db
+- auto backup db
 
-LOW-PRIORITY:
+LOW-PRIORITY (open):
 
+- webhooks
 - prompt user, phone or mailto
 - Absent nav url should NOT make app fall back to url
 
-OK: (keep for regression)
+Closed: (keep for regression)
 
+- material icons for heat, water, power, internet, laundry, parking
+- make issue a smaller button than entry and saved, and if possible replace the word Issues with a material icon symbolizing them.
 - add issues to model
 - add base cost to detail view
 - make countdown more compact in Card view
