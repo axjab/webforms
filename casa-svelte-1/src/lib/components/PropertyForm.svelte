@@ -3,7 +3,7 @@
 	import { emptyRecord, recordTotal } from '$lib/model.js';
 	import { computeStatus, parseCoordinates, distanceFromRef } from '$lib/derive.js';
 	import { formatMoney } from '$lib/format.js';
-	import { validateUrl, validateTourDate, validateRecord } from '$lib/validation.js';
+	import { validateUrl, validateTourDate, validateRecord, validateNavigationUrl } from '$lib/validation.js';
 
 	let {
 		record = $bindable(),
@@ -64,6 +64,7 @@
 
 	// Live validation state derivations
 	const urlValidation = $derived.by(() => validateUrl(record.url));
+	const navigationUrlValidation = $derived.by(() => validateNavigationUrl(record.navigation_url));
 	const tourDateValidation = $derived.by(() => validateTourDate(record.tour_date));
 	const allValidation = $derived.by(() => validateRecord(record));
 
@@ -160,9 +161,13 @@
 			<input
 				type="text"
 				id="navigation_url"
-				placeholder="mapfwd.com/https://rentals.ca/…"
+				placeholder="https://maps.example.com/…"
 				bind:value={record.navigation_url}
+				class:input-error={!navigationUrlValidation.valid}
 			/>
+			{#if !navigationUrlValidation.valid}
+				<div class="error-msg">{navigationUrlValidation.message}</div>
+			{/if}
 		</div>
 		<div class="grid-2">
 			<div class="field">

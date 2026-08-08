@@ -10,7 +10,7 @@ export function emptyRecord() {
 		cost_utilities: '',
 		cost_heat: '',
 		cost_water: '',
-		cost_power: '',
+		cost_power: 60,
 		cost_internet: 40,
 		cost_laundry: 35,
 		cost_other: [],

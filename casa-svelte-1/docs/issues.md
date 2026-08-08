@@ -1,9 +1,7 @@
 
 FAILED:
 
-
-- add URL validation for navigation url: DO NOT CHECK FOR NULL or EMPTY, just format
-
+- fix style of card list, accordion regressed
 - move all rejected entries in "archived" accordion similar to accepted ones
 - make countdown more compact in Card view
 
@@ -12,6 +10,7 @@ FAILED:
 - add base cost to detail view
 
 - find a way to computed coordinates from URL
+- material icons for heat, water, power, internet, laundry, parking
 
 Issue
 -----
@@ -37,6 +36,7 @@ LOW-PRIORITY:
 
 OK: (keep for regression)
 
+- add URL validation for navigation url: DO NOT CHECK FOR NULL or EMPTY, just format
 - copy/duplicate all error messages at the  bottom of the form, just under the save button
 - cannot schedule tour date in the past
 - persist text in storage for unsubmitted forms

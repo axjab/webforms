@@ -1,4 +1,37 @@
 
+export function validateNavigationUrl(url) {
+	// Null, undefined, empty, or whitespace-only values are allowed
+	if (!url || typeof url !== 'string' || !url.trim()) {
+		return { valid: true };
+	}
+
+	try {
+		new URL(url.trim());
+		return { valid: true };
+	} catch {
+		return { valid: false, message: 'Navigation URL must be a valid URL (e.g. https://maps.example.com)' };
+	}
+}
+
+// Ensure validateRecord includes navigation_url in overall form validation
+export function validateRecord(record) {
+	const errors = [];
+
+	const urlVal = validateUrl(record.url);
+	if (!urlVal.valid) errors.push(urlVal.message);
+
+	const navUrlVal = validateNavigationUrl(record.navigation_url);
+	if (!navUrlVal.valid) errors.push(navUrlVal.message);
+
+	const tourVal = validateTourDate(record.tour_date);
+	if (!tourVal.valid) errors.push(tourVal.message);
+
+	return {
+		valid: errors.length === 0,
+		errors
+	};
+}
+
 /**
  * Validates listing URL structure
  */
@@ -35,33 +68,6 @@ export function validateTourDate(tourDate) {
 		return { valid: false, message: 'Tour date cannot be in the past.' };
 	}
 	return { valid: true, message: '' };
-}
-
-/**
- * Consolidates all form field validation
- */
-export function validateRecord(record) {
-	const errors = [];
-
-	if (!record.address || !record.address.trim()) {
-		errors.push('Address is required.');
-	}
-
-	if (record.cost_base === '' || record.cost_base === null || record.cost_base === undefined) {
-		errors.push('Base cost is required.');
-	}
-
-	const urlCheck = validateUrl(record.url);
-	if (!urlCheck.valid) {
-		errors.push(urlCheck.message);
-	}
-
-	const tourCheck = validateTourDate(record.tour_date);
-	if (!tourCheck.valid) {
-		errors.push(tourCheck.message);
-	}
-
-	return { valid: errors.length === 0, errors };
 }
 
 export function validateForCreate(payload) {
